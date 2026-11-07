@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
   try {
     const r = await client.beta.messages.create({
-      model: "claude-opus-5-5",
+      model: "claude-sonnet-5-5",
       max_tokens: 8000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
