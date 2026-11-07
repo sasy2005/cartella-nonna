@@ -14,9 +14,11 @@ export interface LetturaRicetta {
   priorita: "U" | "B" | "D" | "P" | "";
   nre: string;
   data_ricetta: string;
+  validita_giorni: number;
   prescrittore: string;
   esenzione: string;
   quesito: string;
+  appunti_a_mano: string;
   note_lettura: string;
 }
 

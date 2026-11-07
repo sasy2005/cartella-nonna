@@ -9,7 +9,7 @@ const client = new Anthropic();
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["tipo", "titolo", "prestazioni", "specialita", "priorita", "nre", "data_ricetta", "prescrittore", "esenzione", "quesito", "note_lettura"],
+  required: ["tipo", "titolo", "prestazioni", "specialita", "priorita", "nre", "data_ricetta", "validita_giorni", "prescrittore", "esenzione", "quesito", "appunti_a_mano", "note_lettura"],
   properties: {
     tipo: { type: "string", enum: ["visita", "esame"] },
     titolo: { type: "string" },
@@ -18,9 +18,11 @@ const SCHEMA = {
     priorita: { type: "string", enum: ["U", "B", "D", "P", ""] },
     nre: { type: "string" },
     data_ricetta: { type: "string" },
+    validita_giorni: { type: "integer" },
     prescrittore: { type: "string" },
     esenzione: { type: "string" },
     quesito: { type: "string" },
+    appunti_a_mano: { type: "string" },
     note_lettura: { type: "string" },
   },
 };
@@ -32,12 +34,14 @@ Compila così:
 - titolo: breve e chiaro per una persona non medica, es. "Visita cardiologica", "Ecografia addome completo", "Esami del sangue (emocromo, glicemia, creatinina…)". Se ci sono molte analisi del sangue, riassumile così.
 - prestazioni: l'elenco delle prestazioni come scritte sulla ricetta, senza i codici.
 - specialita: il reparto più adatto tra quelli permessi. Le analisi del sangue e delle urine vanno in "Laboratorio analisi", ecografie e radiografie in "Radiologia / Ecografia" (salvo eco cardiache: "Cardiologia").
-- priorita: la lettera U, B, D o P indicata nella casella della priorità; stringa vuota se non c'è o non è leggibile.
+- priorita: la lettera U, B, D o P indicata nella casella della priorità (a volte è scritta per esteso: Urgente, Breve, Differibile, Programmabile/Programmata); stringa vuota se non c'è o non è leggibile.
 - nre: il codice della ricetta (NRE), in alto vicino al codice a barre: 5 caratteri, uno spazio, poi 10 cifre (es. "0301A 4012345678"). Copialo carattere per carattere.
 - data_ricetta: la data di compilazione in formato AAAA-MM-GG, stringa vuota se non leggibile.
+- validita_giorni: per quanti giorni la ricetta è valida per prenotare, se è scritto (es. "PRESCRIZIONE VALIDA 180 GIORNI AI FINI DELLA PRENOTAZIONE" → 180). 0 se non è indicato.
 - prescrittore: nome e cognome del medico che ha firmato.
 - esenzione: il codice di esenzione se presente (es. "013"), altrimenti stringa vuota.
 - quesito: il quesito o sospetto diagnostico, se scritto.
+- appunti_a_mano: le note scritte a mano sul foglio (es. dal medico: "esami tra 12 mesi"), trascritte come sono. Stringa vuota se non ce ne sono.
 - note_lettura: cosa non hai potuto leggere con sicurezza (cifre sfocate, parti tagliate). Stringa vuota se è tutto chiaro.
 Se la foto non è una ricetta, lascia vuoti i campi e spiegalo in note_lettura.`;
 

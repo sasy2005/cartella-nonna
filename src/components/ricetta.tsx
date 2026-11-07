@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { SPECIALITA, type Impegno } from "../../supabase/functions/_shared/tipi.ts";
+import { aggiungiGiorni } from "../../supabase/functions/_shared/date.ts";
 import { blobBase64, comprimiImmagine, useApp } from "../lib/app.tsx";
 import { Sheet } from "./ui.tsx";
 
@@ -29,12 +30,15 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
       const l = await backend.leggiRicetta(await blobBase64(img), "image/jpeg");
       const note = [
         l.prestazioni.length > 1 ? "Prestazioni: " + l.prestazioni.join(", ") : "",
+        l.appunti_a_mano ? "Scritto a mano: " + l.appunti_a_mano : "",
         l.quesito ? "Motivo: " + l.quesito : "",
         l.esenzione ? "Esenzione: " + l.esenzione : "",
         l.note_lettura ? "Da controllare: " + l.note_lettura : "",
       ]
         .filter(Boolean)
         .join("\n");
+      const data = /^\d{4}-\d{2}-\d{2}$/.test(l.data_ricetta) ? l.data_ricetta : null;
+      const validita = Number(l.validita_giorni) > 0 ? Number(l.validita_giorni) : 0;
       toast("Ricetta letta: controlla i dati");
       vaiAlModulo({
         tipo: perVisitaId ? "esame" : l.tipo,
@@ -42,7 +46,8 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
         specialita: (SPECIALITA as readonly string[]).includes(l.specialita) ? l.specialita : "Altro",
         priorita: l.priorita || null,
         nre: l.nre,
-        data_ricetta: /^\d{4}-\d{2}-\d{2}$/.test(l.data_ricetta) ? l.data_ricetta : null,
+        data_ricetta: data,
+        scadenza_ricetta: data && validita ? aggiungiGiorni(data, validita) : null,
         prescrittore: l.prescrittore,
         note,
         giorni_referto: l.tipo === "esame" ? (/sangue|emocromo|glic|urin|creatin|ferritin/i.test(l.titolo) ? 3 : /eco/i.test(l.titolo) ? 7 : 0) : 0,
