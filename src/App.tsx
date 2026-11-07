@@ -186,7 +186,7 @@ export function App() {
         <h1>Qualcosa non va</h1>
         <div className="alert urgente">{errore}</div>
         <p className="muted">Se hai appena creato l'account, controlla che la tua email sia nella tabella “membri” (vedi GUIDA.md).</p>
-        <button onClick={() => location.reload()}>Riprova</button>
+        <button onClick={(e) => { e.currentTarget.textContent = "Riprovo…"; e.currentTarget.disabled = true; location.reload(); }}>Riprova</button>
         {CLOUD && <button onClick={() => supabase().auth.signOut().then(() => location.reload())}>Esci</button>}
       </main>
     );
