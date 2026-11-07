@@ -23,11 +23,11 @@ jobs:
       - name: Collega il progetto
         run: supabase link --project-ref "$PROJECT_REF"
       - name: Tabelle
-        run: supabase db push --remote --password "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --remote --password "$SUPABASE_DB_PASSWORD" --yes
       - name: Segreti delle funzioni
         run: |
-          supabase secrets set \
+          supabase secrets set --yes \
             ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
             CRON_SECRET="${{ secrets.CRON_SECRET }}"
       - name: Funzioni
-        run: supabase functions deploy --use-api
+        run: supabase functions deploy --use-api --yes
