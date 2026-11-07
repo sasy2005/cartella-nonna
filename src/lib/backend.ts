@@ -40,6 +40,10 @@ export interface Backend {
   membro(): Promise<Membro | null>;
   salvaMembro(m: Partial<Membro>): Promise<void>;
   inviaProva(): Promise<string>;
+  chiaveNotifiche(): Promise<string>;
+  salvaIscrizione(s: PushSubscription): Promise<void>;
+  rimuoviIscrizione(endpoint: string): Promise<void>;
+  provaNotifica(): Promise<string>;
   esci(): Promise<void>;
 }
 
@@ -143,8 +147,29 @@ function cloud(session: Session): Backend {
       ok(await sb.from("membri").update(m).eq("email", session.user.email!));
     },
     async inviaProva() {
-      const r = await invoca<{ messaggio: string }>("promemoria", { prova: true });
+      const r = await invoca<{ messaggio: string }>("promemoria", { prova: "whatsapp" });
       return r.messaggio;
+    },
+    async chiaveNotifiche() {
+      return (await invoca<{ chiave: string }>("promemoria", { chiave: true })).chiave;
+    },
+    async salvaIscrizione(sub) {
+      const j = sub.toJSON();
+      ok(
+        await sb.from("notifiche_iscrizioni").upsert({
+          endpoint: sub.endpoint,
+          email: session.user.email!,
+          p256dh: j.keys?.p256dh ?? "",
+          auth: j.keys?.auth ?? "",
+          dispositivo: navigator.userAgent.slice(0, 200),
+        }),
+      );
+    },
+    async rimuoviIscrizione(endpoint) {
+      ok(await sb.from("notifiche_iscrizioni").delete().eq("endpoint", endpoint));
+    },
+    async provaNotifica() {
+      return (await invoca<{ messaggio: string }>("promemoria", { prova: "notifica" })).messaggio;
     },
     async esci() {
       await sb.auth.signOut();
@@ -243,6 +268,14 @@ export function backendDemo(): Backend {
     async salvaMembro() {},
     async inviaProva() {
       throw new Error("I messaggi WhatsApp funzionano solo con l'app collegata a Supabase.");
+    },
+    async chiaveNotifiche() {
+      throw new Error("Le notifiche funzionano solo con l'app collegata a Supabase.");
+    },
+    async salvaIscrizione() {},
+    async rimuoviIscrizione() {},
+    async provaNotifica() {
+      throw new Error("Le notifiche funzionano solo con l'app collegata a Supabase.");
     },
     async esci() {
       try {

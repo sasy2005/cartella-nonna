@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calcolaAvvisi, scadenzaDi, giorniRimasti, ritiroDi, testoPromemoria } from "../supabase/functions/_shared/avvisi.ts";
+import { calcolaAvvisi, scadenzaDi, giorniRimasti, ritiroDi, testoPromemoria, notificaPromemoria } from "../supabase/functions/_shared/avvisi.ts";
 import { aggiungiMesi, giornoDi, diffGiorni } from "../supabase/functions/_shared/date.ts";
 import type { Dati, Impegno } from "../supabase/functions/_shared/tipi.ts";
 import { PROFILO_VUOTO } from "../supabase/functions/_shared/tipi.ts";
@@ -80,8 +80,12 @@ test("avvisi: richiamare, prenotare, ritiro, farmaci, visita domani", () => {
   const t = testoPromemoria(d, OGGI)!;
   assert.match(t, /Digiuno/);
   assert.match(t, /Metformina/);
+  const n = notificaPromemoria(d, OGGI)!;
+  assert.match(n.titolo, /^\d+ cose da fare per la nonna$/);
+  assert.ok(n.testo.split("\n").length <= 5);
 });
 
 test("nessun avviso = nessun messaggio", () => {
   assert.equal(testoPromemoria(dati({}), OGGI), null);
+  assert.equal(notificaPromemoria(dati({}), OGGI), null);
 });

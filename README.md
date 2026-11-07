@@ -8,6 +8,6 @@ App per il telefono che tiene in ordine visite, esami, ricette, farmaci e docume
 - **Sto chiamando**: tutti i dati da dire al CUP a caratteri grandi, i numeri da chiamare, il registro dei "nessun posto, richiamare lunedì".
 - **Farmaci**: scorte e avviso 10 giorni prima che finiscano, con il messaggio per il medico già pronto.
 - **Rubrica** e **Archivio** dei referti per reparto.
-- **WhatsApp**: riepilogo ogni mattina.
+- **Notifiche** sul telefono ogni mattina (e WhatsApp facoltativo).
 
 Per metterla online segui **[GUIDA.md](GUIDA.md)**.

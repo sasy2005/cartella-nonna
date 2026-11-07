@@ -85,15 +85,15 @@ Apri l'indirizzo del sito ed entra con email e password.
 - **iPhone (Safari)**: tasto Condividi → **Aggiungi alla schermata Home**
 - **Android (Chrome)**: menu ⋮ → **Installa app** (o "Aggiungi a schermata Home")
 
-## 7. Promemoria su WhatsApp (ognuno sul suo telefono)
+## 7. Notifiche del mattino (ognuno sul suo telefono)
 
-Nell'app: **Oggi → Impostazioni → Promemoria su WhatsApp**. I passi sono scritti lì:
-1. Sul sito **callmebot.com** (sezione WhatsApp) trovi il numero del bot: salvalo in rubrica.
-2. Mandagli su WhatsApp: `I allow callmebot to send me messages`
-3. Ti risponde con un codice (**apikey**): inseriscilo nell'app con il tuo numero (`+39…`).
-4. Premi **Mandami ora un messaggio di prova**.
+Nell'app: **Oggi → Impostazioni → Notifiche su questo telefono → Attiva le notifiche**, poi **Mandami una prova**.
+- **Android**: funziona da Chrome o dall'app installata.
+- **iPhone**: prima aggiungi l'app alla schermata Home e aprila da lì, altrimenti iOS non permette le notifiche.
 
-Da quel momento ogni mattina verso le 7 arriva il riepilogo: visite di domani con la preparazione, cose da prenotare in scadenza, richiamate, referti da ritirare, farmaci che finiscono. Se non c'è niente da fare, non arriva niente.
+Ogni mattina verso le 7 arriva una notifica con le cose da fare: visite di domani con la preparazione, cose da prenotare in scadenza, richiamate, referti da ritirare, farmaci che finiscono. Se non c'è niente da fare, non arriva niente.
+
+**WhatsApp (facoltativo).** Si può aggiungere anche un messaggio WhatsApp tramite il servizio gratuito CallMeBot (passi in Impostazioni). A novembre 2026 il loro bot era pieno ("This Bot is full"): riprovare più avanti.
 
 ## 8. Primi dati da inserire (con la mamma)
 
@@ -108,9 +108,9 @@ Da quel momento ogni mattina verso le 7 arriva il riepilogo: visite di domani co
 ## Da sapere
 
 - **Il codice è pubblico, i dati no.** GitHub Pages gratis richiede un repository pubblico: si vede il codice dell'app, ma i dati della nonna stanno su Supabase, protetti da login e dalla lista `membri`.
-- **Dove passano i dati.** Le foto delle ricette vengono mandate a Claude (Anthropic) per leggerle. I promemoria passano da CallMeBot, un servizio gratuito esterno: il testo contiene i nomi delle visite. Se non vi va bene, non configurate CallMeBot: l'app funziona lo stesso.
+- **Dove passano i dati.** Le foto delle ricette vengono mandate a Claude (Anthropic) per leggerle. Le notifiche arrivano tramite il servizio push del telefono (Google o Apple), cifrate. Il WhatsApp facoltativo passa da CallMeBot, un servizio gratuito esterno: il testo contiene i nomi delle visite.
 - **Il promemoria del mattino si ferma dopo 60 giorni senza modifiche al codice.** È una regola di GitHub per i repository pubblici: ti arriva un'email e basta riattivarlo con un clic (Actions → Promemoria WhatsApp → Enable workflow).
-- **Supabase gratuito mette in pausa i progetti inattivi per una settimana.** Il promemoria giornaliero lo tiene sveglio. Se si ferma, si riattiva dalla dashboard di Supabase.
+- **Supabase gratuito mette in pausa i progetti inattivi per una settimana.** La chiamata giornaliera per le notifiche lo tiene sveglio. Se si ferma, si riattiva dalla dashboard di Supabase.
 - **Copia di sicurezza:** Impostazioni → Scarica i dati. Supabase in più fa i suoi backup.
 
 ## Per sviluppare (facoltativo)

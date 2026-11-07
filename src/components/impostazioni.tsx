@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../lib/app.tsx";
 import type { Membro } from "../lib/backend.ts";
 import { Modulo, Sheet, type Campo } from "./ui.tsx";
+import { CardNotifiche } from "./notifiche.tsx";
 
 export function FormProfilo() {
   const { dati, salvaProfilo, chiudi, toast } = useApp();
@@ -55,7 +56,7 @@ export function SchermataImpostazioni() {
     { k: "nome", l: "Il tuo nome" },
     { k: "whatsapp_tel", l: "Il tuo numero WhatsApp", tipo: "tel", hint: "Con il prefisso: +39 333 1234567" },
     { k: "callmebot_key", l: "Codice CallMeBot (apikey)", hint: "Te lo manda il bot su WhatsApp: vedi la guida qui sotto" },
-    { k: "promemoria", l: "Mandami il riepilogo ogni mattina", tipo: "check" },
+    { k: "promemoria", l: "Mandami il riepilogo ogni mattina", tipo: "check", hint: "vale per notifiche e WhatsApp" },
   ];
 
   return (
@@ -65,8 +66,11 @@ export function SchermataImpostazioni() {
         <span className="small muted">{dati.profilo.nome || "Nome, codice fiscale, tessera, esenzioni"}</span>
       </button>
 
+      <CardNotifiche />
+
       <div className="card">
-        <h3>Promemoria su WhatsApp</h3>
+        <h3>WhatsApp (facoltativo)</h3>
+        <p className="small muted">Usa il servizio gratuito CallMeBot. Se risponde “This Bot is full”, è pieno: riprova tra qualche giorno con il nuovo numero che trovi sul loro sito.</p>
         {backend.modalita === "demo" ? (
           <p className="small muted">Funzionano quando l'app è collegata a Supabase (vedi GUIDA.md). In modalità prova non partono messaggi.</p>
         ) : membro ? (

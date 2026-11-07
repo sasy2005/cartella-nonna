@@ -241,3 +241,13 @@ export function testoPromemoria(dati: Dati, g: string): string | null {
   const extra = avvisi.length > 12 ? `\n\n…e altre ${avvisi.length - 12} cose nell'app.` : "";
   return `Buongiorno! Cose da fare per la nonna${nome}:\n\n${corpo}${extra}`;
 }
+
+/** Titolo e testo della notifica del mattino. Null se non c'è niente da dire. */
+export function notificaPromemoria(dati: Dati, g: string): { titolo: string; testo: string } | null {
+  const avvisi = calcolaAvvisi(dati, g).filter((a) => a.livello !== "info" || a.categoria === "ritiro");
+  if (!avvisi.length) return null;
+  const n = avvisi.length;
+  const righe = avvisi.slice(0, 4).map((a) => "• " + a.titolo);
+  if (n > 4) righe.push(`…e altre ${n - 4}`);
+  return { titolo: `${n} ${n === 1 ? "cosa da fare" : "cose da fare"} per la nonna`, testo: righe.join("\n") };
+}
