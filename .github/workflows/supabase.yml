@@ -1,0 +1,33 @@
+name: Aggiorna Supabase
+
+# Crea/aggiorna tabelle e funzioni server. Parte da solo quando cambia la cartella supabase/,
+# oppure a mano da GitHub: Actions → Aggiorna Supabase → Run workflow.
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/**"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Collega il progetto
+        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+      - name: Tabelle
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+      - name: Segreti delle funzioni
+        run: |
+          supabase secrets set --project-ref "$PROJECT_REF" \
+            ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
+            CRON_SECRET="${{ secrets.CRON_SECRET }}"
+      - name: Funzioni
+        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api

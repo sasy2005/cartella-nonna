@@ -1,0 +1,19 @@
+name: Promemoria WhatsApp
+
+# Ogni mattina verso le 7 (ora italiana; in estate verso le 8).
+on:
+  schedule:
+    - cron: "47 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  invia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chiedi a Supabase di mandare il riepilogo
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/promemoria" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d '{}'

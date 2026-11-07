@@ -1,0 +1,9 @@
+# Configurazione minima per la CLI di Supabase (usata dal workflow "Aggiorna Supabase").
+project_id = "cartella-nonna"
+
+# Le funzioni controllano da sole chi le chiama (membro della famiglia o segreto del promemoria).
+[functions.leggi-ricetta]
+verify_jwt = false
+
+[functions.promemoria]
+verify_jwt = false
