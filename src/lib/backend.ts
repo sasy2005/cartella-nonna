@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient, type Session } from "@supabase/supab
 import type { Dati, Profilo } from "../../supabase/functions/_shared/tipi.ts";
 import { PROFILO_VUOTO } from "../../supabase/functions/_shared/tipi.ts";
 import { datiDemo } from "./demo.ts";
+import { chiediMemoriaPersistente, memoriaLogin } from "./memoria.ts";
 
 export type Tabella = "impegni" | "chiamate" | "contatti" | "documenti" | "farmaci";
 
@@ -53,7 +54,12 @@ export const CLOUD = Boolean(URL_SB && KEY_SB);
 
 let client: SupabaseClient | null = null;
 export function supabase(): SupabaseClient {
-  if (!client) client = createClient(URL_SB!, KEY_SB!, { auth: { persistSession: true, autoRefreshToken: true } });
+  if (!client) {
+    chiediMemoriaPersistente();
+    client = createClient(URL_SB!, KEY_SB!, {
+      auth: { persistSession: true, autoRefreshToken: true, storage: memoriaLogin, storageKey: "cartella-nonna-login" },
+    });
+  }
   return client;
 }
 

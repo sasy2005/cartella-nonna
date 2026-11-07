@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useApp } from "../lib/app.tsx";
-import type { Membro } from "../lib/backend.ts";
 import { Modulo, Sheet, type Campo } from "./ui.tsx";
 import { CardNotifiche } from "./notifiche.tsx";
 
@@ -35,13 +34,7 @@ export function FormProfilo() {
 
 export function SchermataImpostazioni() {
   const { backend, apri, dati, toast } = useApp();
-  const [membro, setMembro] = useState<Membro | null>(null);
-  const [invio, setInvio] = useState(false);
   const [conferma, setConferma] = useState(false);
-
-  useEffect(() => {
-    backend.membro().then(setMembro).catch(() => {});
-  }, [backend]);
 
   const backup = () => {
     const blob = new Blob([JSON.stringify(dati, null, 2)], { type: "application/json" });
@@ -52,13 +45,6 @@ export function SchermataImpostazioni() {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
 
-  const campiWa: Campo[] = [
-    { k: "nome", l: "Il tuo nome" },
-    { k: "whatsapp_tel", l: "Il tuo numero WhatsApp", tipo: "tel", hint: "Con il prefisso: +39 333 1234567" },
-    { k: "callmebot_key", l: "Codice CallMeBot (apikey)", hint: "Te lo manda il bot su WhatsApp: vedi la guida qui sotto" },
-    { k: "promemoria", l: "Mandami il riepilogo ogni mattina", tipo: "check", hint: "vale per notifiche e WhatsApp" },
-  ];
-
   return (
     <Sheet titolo="Impostazioni">
       <button className="card" onClick={() => apri({ k: "profilo" })}>
@@ -67,53 +53,6 @@ export function SchermataImpostazioni() {
       </button>
 
       <CardNotifiche />
-
-      <div className="card">
-        <h3>WhatsApp (facoltativo)</h3>
-        <p className="small muted">Usa il servizio gratuito CallMeBot. Se risponde “This Bot is full”, è pieno: riprova tra qualche giorno con il nuovo numero che trovi sul loro sito.</p>
-        {backend.modalita === "demo" ? (
-          <p className="small muted">Funzionano quando l'app è collegata a Supabase (vedi GUIDA.md). In modalità prova non partono messaggi.</p>
-        ) : membro ? (
-          <>
-            <ol className="small" style={{ margin: 0, paddingLeft: 18 }}>
-              <li>Salva in rubrica il numero di CallMeBot che trovi su callmebot.com (sezione WhatsApp).</li>
-              <li>Mandagli su WhatsApp il messaggio: <b>I allow callmebot to send me messages</b></li>
-              <li>Ti risponde con un codice (apikey): scrivilo qui sotto.</li>
-            </ol>
-            <Modulo
-              campi={campiWa}
-              iniziali={{ ...membro }}
-              onSalva={async (v) => {
-                const m = { nome: String(v.nome).trim(), whatsapp_tel: String(v.whatsapp_tel).replace(/\s/g, ""), callmebot_key: String(v.callmebot_key).trim(), promemoria: Boolean(v.promemoria) };
-                try {
-                  await backend.salvaMembro(m);
-                  setMembro({ ...membro, ...m });
-                  toast("Salvato");
-                } catch (e) {
-                  toast("Non salvato: " + (e as Error).message);
-                }
-              }}
-            />
-            <button
-              disabled={invio}
-              onClick={async () => {
-                setInvio(true);
-                try {
-                  toast(await backend.inviaProva());
-                } catch (e) {
-                  toast("Invio non riuscito: " + (e as Error).message);
-                } finally {
-                  setInvio(false);
-                }
-              }}
-            >
-              {invio ? "Invio…" : "Mandami ora un messaggio di prova"}
-            </button>
-          </>
-        ) : (
-          <p className="small muted">Il tuo account non è ancora nella lista dei membri della famiglia (tabella “membri” su Supabase).</p>
-        )}
-      </div>
 
       <div className="card">
         <h3>Copia di sicurezza</h3>

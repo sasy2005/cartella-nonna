@@ -207,12 +207,17 @@ ul.check li::before { content: ""; flex: none; width: 8px; height: 8px; margin-t
 }
 .sheet {
   background: var(--bg); width: 100%; max-width: 720px; max-height: 94%;
-  overflow: auto; border-radius: 18px 18px 0 0;
-  padding: 18px max(16px, env(safe-area-inset-left, 0px)) calc(22px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; border-radius: 18px 18px 0 0;
+  padding-top: 18px;
+  padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; gap: 14px;
 }
+/* in una colonna che scorre, i riquadri non devono mai essere schiacciati uno sull'altro */
+.sheet > *, .full .wrap > *, .stack > * { flex-shrink: 0; min-width: 0; }
 .full {
-  position: fixed; inset: 0; z-index: 45; background: var(--bg); overflow: auto;
+  position: fixed; inset: 0; z-index: 45; background: var(--bg); overflow-y: auto; overflow-x: hidden;
 }
 .full .wrap { padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
 
