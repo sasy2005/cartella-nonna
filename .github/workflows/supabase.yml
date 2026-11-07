@@ -21,7 +21,7 @@ jobs:
         with:
           version: latest
       - name: Collega il progetto
-        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+        run: supabase link --project-ref "$PROJECT_REF"
       - name: Tabelle
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
       - name: Segreti delle funzioni
