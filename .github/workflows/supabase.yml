@@ -19,15 +19,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.0.0
       - name: Collega il progetto
         run: supabase link --project-ref "$PROJECT_REF"
       - name: Tabelle
-        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --remote --password "$SUPABASE_DB_PASSWORD"
       - name: Segreti delle funzioni
         run: |
-          supabase secrets set --project-ref "$PROJECT_REF" \
+          supabase secrets set \
             ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
             CRON_SECRET="${{ secrets.CRON_SECRET }}"
       - name: Funzioni
-        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api
+        run: supabase functions deploy --use-api
