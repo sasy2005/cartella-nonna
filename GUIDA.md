@@ -109,7 +109,7 @@ Ogni mattina verso le 7 arriva una notifica con le cose da fare: visite di doman
 
 - **Il codice è pubblico, i dati no.** GitHub Pages gratis richiede un repository pubblico: si vede il codice dell'app, ma i dati della nonna stanno su Supabase, protetti da login e dalla lista `membri`.
 - **Dove passano i dati.** Le foto delle ricette vengono mandate a Claude (Anthropic) per leggerle. Le notifiche arrivano tramite il servizio push del telefono (Google o Apple), cifrate. Il WhatsApp facoltativo passa da CallMeBot, un servizio gratuito esterno: il testo contiene i nomi delle visite.
-- **Il promemoria del mattino si ferma dopo 60 giorni senza modifiche al codice.** È una regola di GitHub per i repository pubblici: ti arriva un'email e basta riattivarlo con un clic (Actions → Promemoria WhatsApp → Enable workflow).
+- **Il promemoria del mattino si ferma dopo 60 giorni senza modifiche al codice.** È una regola di GitHub per i repository pubblici: ti arriva un'email e basta riattivarlo con un clic (Actions → Promemoria del mattino → Enable workflow).
 - **Supabase gratuito mette in pausa i progetti inattivi per una settimana.** La chiamata giornaliera per le notifiche lo tiene sveglio. Se si ferma, si riattiva dalla dashboard di Supabase.
 - **Copia di sicurezza:** Impostazioni → Scarica i dati. Supabase in più fa i suoi backup.
 

@@ -1,4 +1,4 @@
-name: Promemoria WhatsApp
+name: Promemoria del mattino
 
 # Ogni mattina verso le 7 (ora italiana; in estate verso le 8).
 on:
