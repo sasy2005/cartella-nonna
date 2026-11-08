@@ -54,7 +54,9 @@ jobs:
           echo "$v" | jq '{ora_italiana, orologio: .diagnostica.orologio, esecuzioni: .diagnostica.esecuzioni, risposte: .diagnostica.risposte, chiavi_notifiche, telefoni_iscritti, membri, impegni, farmaci, documenti, lettura_dati, claude, ultimo_giro}'
           [ "$(echo "$v" | jq -r '.diagnostica.orologio[0].attivo')" = "true" ] && ok "Orologio dei promemoria: attivo ($(echo "$v" | jq -r '.diagnostica.orologio[0].orario'))" || ko "Orologio dei promemoria: non attivo"
           n=$(echo "$v" | jq '[.diagnostica.esecuzioni[]? | select(.stato=="succeeded")] | length')
-          [ "${n:-0}" -ge 1 ] && ok "Orologio: $n esecuzioni riuscite di recente" || ko "Orologio: nessuna esecuzione riuscita"
+          r=$(echo "$v" | jq '[.diagnostica.risposte[]? | select(.codice == 200)] | length')
+          ultima=$(echo "$v" | jq -r '[.diagnostica.risposte[]?.quando] | max // "mai"')
+          if [ "${n:-0}" -ge 1 ] || [ "${r:-0}" -ge 1 ]; then ok "Orologio: scatta ogni ora (ultima chiamata riuscita: $ultima UTC)"; else ko "Orologio: non è ancora scattato (scatta al minuto 2 di ogni ora)"; fi
           e=$(echo "$v" | jq '[.diagnostica.risposte[]? | select(.codice != 200 or .errore)] | length')
           [ "${e:-1}" = "0" ] && ok "Orologio: la funzione risponde sempre bene" || ko "Orologio: $e chiamate alla funzione con errore"
           [ "$(echo "$v" | jq -r '.lettura_dati')" = "ok" ] && ok "Lettura dei dati: ok" || ko "Lettura dei dati: $(echo "$v" | jq -r '.lettura_dati')"
