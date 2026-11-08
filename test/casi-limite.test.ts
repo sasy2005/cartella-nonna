@@ -111,3 +111,13 @@ test("promemoria: molti avvisi vengono riassunti, ordine urgente → attenzione"
   assert.equal(notif.titolo, "15 cose da fare per la nonna");
   assert.match(notif.testo, /…e altre 11$/);
 });
+
+test("cosa portare: le cose che si portano sempre non vengono ricordate", async () => {
+  const { eScontato } = await import("../supabase/functions/_shared/avvisi.ts");
+  for (const x of ["Tessera sanitaria", "Tessera Sanitaria/CRS", "Impegnativa del medico", "Prescrizione medica", "Ricetta", "Documento d'identità", "Carta d'identità", "Documentazione precedente", "Referti precedenti", "Esami precedenti", "Eventuale documentazione clinica precedente", "Documentazione sanitaria", "Codice fiscale"])
+    assert.ok(eScontato(x), "doveva essere scontato: " + x);
+  for (const x of ["Ultimo elettrocardiogramma", "Esami del sangue di settembre", "Lista farmaci", "Urine del mattino in contenitore sterile", "Referto ecografia 2025", "Holter precedente"])
+    assert.ok(!eScontato(x), "non doveva essere scontato: " + x);
+  const v = imp({ id: "v", tipo: "visita", portare: "Tessera sanitaria\nImpegnativa\nLista farmaci\nDocumentazione precedente" });
+  assert.deepEqual(cosaPortare(v, { impegni: [v], documenti: [] }).map((p) => p.testo), ["Lista farmaci"]);
+});

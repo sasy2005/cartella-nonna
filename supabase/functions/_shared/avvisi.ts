@@ -53,6 +53,19 @@ export function scadenzaDi(imp: Impegno, dati: Pick<Dati, "impegni">): Scadenza 
   return candidati.reduce((a, b) => (b.giorno < a.giorno ? b : a));
 }
 
+/** Cose che la mamma porta sempre a ogni visita: non serve ricordarle. */
+const SCONTATI = [
+  /tessera (sanitaria|regionale)|carta regionale dei servizi|\bcrs\b|\bts-?cns\b/i,
+  /document[oi] (d.?identit|di riconoscimento)|carta d.?identit/i,
+  /impegnativ|prescrizion|ricett[ae]\b|richiesta (del )?medic/i,
+  /codice fiscale/i,
+  /^(eventuale |tutta la |la )?(documentazione|referti|esami|accertamenti|certificazion[ei])( (sanitari[ae]|clinic[ah]e?|medic[ah]e?))? precedent/i,
+  /^(eventuale |tutta la )?documentazione (sanitaria|clinica|medica)?\s*$/i,
+];
+export function eScontato(voce: string): boolean {
+  return SCONTATI.some((r) => r.test(voce.trim()));
+}
+
 export interface CosaPortare {
   testo: string;
   /** nota = scritta a mano, archivio = documento scelto, esame = risultati di un esame collegato */
@@ -65,7 +78,9 @@ export interface CosaPortare {
 
 /** Tutto quello da portare a una visita: note scritte, documenti scelti e risultati degli esami collegati. */
 export function cosaPortare(imp: Impegno, dati: Pick<Dati, "impegni" | "documenti">): CosaPortare[] {
-  const out: CosaPortare[] = righe(imp.portare).map((t) => ({ testo: t, fonte: "nota" as const, pronto: true }));
+  const out: CosaPortare[] = righe(imp.portare)
+    .filter((t) => !eScontato(t))
+    .map((t) => ({ testo: t, fonte: "nota" as const, pronto: true }));
   for (const id of imp.documenti_da_portare ?? []) {
     const d = dati.documenti.find((x) => x.id === id);
     if (d) out.push({ testo: d.titolo, fonte: "archivio", documento_id: d.id, pronto: true });

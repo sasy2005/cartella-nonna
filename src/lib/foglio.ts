@@ -1,6 +1,7 @@
 // Dal foglio di prenotazione letto dall'AI ai campi della visita. Senza React: si può testare.
 import type { Impegno } from "../../supabase/functions/_shared/tipi.ts";
 import type { LetturaPrenotazione } from "./backend.ts";
+import { eScontato } from "../../supabase/functions/_shared/avvisi.ts";
 
 const righe = (s: string | null | undefined) =>
   (s || "")
@@ -24,7 +25,8 @@ export function daFoglio(l: LetturaPrenotazione, imp: Partial<Impegno>): Partial
     return out.join("\n");
   };
   if (l.preparazione.length) campi.preparazione = unisci(imp.preparazione, l.preparazione);
-  if (l.portare.length) campi.portare = unisci(imp.portare, l.portare);
+  const daPortare = l.portare.filter((x) => !eScontato(x));
+  if (daPortare.length) campi.portare = unisci(imp.portare, daPortare);
   const note = [
     l.codice_prenotazione && `Codice prenotazione: ${l.codice_prenotazione}`,
     l.ticket && `Ticket: ${l.ticket}`,

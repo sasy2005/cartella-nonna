@@ -75,7 +75,7 @@ Compila così:
 - indirizzo: via, numero e città della sede.
 - reparto: dove andare dentro la struttura: padiglione, piano, ambulatorio, sportello (es. "Padiglione 3, piano 1, ambulatorio 12").
 - preparazione: le istruzioni da seguire prima, una per voce, riscritte in modo semplice (es. "Digiuno da 8 ore", "Bere 1 litro d'acqua un'ora prima", "Presentarsi 15 minuti prima all'accettazione", "Sospendere la metformina il giorno prima"). Lista vuota se non ce ne sono.
-- portare: cosa portare, una voce per elemento (es. "Impegnativa del medico", "Tessera sanitaria", "Esami precedenti"). Lista vuota se non indicato.
+- portare: solo le richieste specifiche di quella visita, una voce per elemento (es. "Ultimo elettrocardiogramma", "Lista dei farmaci che prende", "Urine del mattino in contenitore sterile"). NON includere le cose che si portano sempre: tessera sanitaria, documento d'identità, impegnativa o ricetta, codice fiscale, documentazione o referti precedenti in generale. Lista vuota se non resta niente.
 - codice_prenotazione: il numero o codice della prenotazione, se c'è.
 - ticket: l'importo da pagare se indicato (es. "36,15 €"), oppure "esente" se scritto, altrimenti stringa vuota.
 - note_lettura: cosa non hai potuto leggere con sicurezza. Stringa vuota se è tutto chiaro.

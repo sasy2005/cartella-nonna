@@ -18,7 +18,7 @@ test("foglio: luogo composto, istruzioni e cose da portare senza doppioni", () =
   );
   assert.equal(c.luogo, "Ospedale Niguarda, Padiglione 3, piano 1, Piazza Ospedale Maggiore 3, Milano");
   assert.equal(c.preparazione, "Digiuno da 8 ore");
-  assert.equal(c.portare, "Tessera sanitaria\nLista farmaci\nImpegnativa");
+  assert.equal(c.portare, undefined); // dal foglio solo cose scontate: quello che c era resta com era
   assert.equal(c.note, "Accompagna la mamma\nCodice prenotazione: PR-123\nTicket: 36,15 €");
 });
 
@@ -28,4 +28,10 @@ test("foglio: senza data non inventa niente, il titolo esistente non viene sovra
   assert.equal(c.titolo, undefined);
   assert.equal(daFoglio(L({ prestazione: "Ecografia" }), {}).titolo, "Ecografia");
   assert.equal(daFoglio(L({ data: "3/12/2026" }), {}).data, undefined); // formato sbagliato: niente data
+});
+
+test("foglio: non copia tessera, impegnativa e documentazione precedente", () => {
+  const c = daFoglio(L({ portare: ["Impegnativa del medico curante", "Tessera sanitaria", "Documentazione clinica precedente", "Ultimo ECG"] }), {});
+  assert.equal(c.portare, "Ultimo ECG");
+  assert.equal(daFoglio(L({ portare: ["Tessera sanitaria"] }), {}).portare, undefined);
 });

@@ -465,7 +465,7 @@ export function FormImpegno({ iniziale, titolo, documento }: { iniziale: Partial
     giorni_referto: { k: "giorni_referto", l: "Dopo quanti giorni è pronto il referto", tipo: "number", hint: "0 se lo danno subito", rapidi: [{ l: "Subito", v: "0" }, { l: "3 giorni", v: "3" }, { l: "1 settimana", v: "7" }, { l: "2 settimane", v: "14" }] },
     entro: { k: "entro", l: "Da fare entro", tipo: "date", hint: "Se c'è una data limite (es. controllo tra 6 mesi)", rapidi: [{ l: "1 mese", v: aggiungiMesi(g, 1) }, { l: "3 mesi", v: aggiungiMesi(g, 3) }, { l: "6 mesi", v: aggiungiMesi(g, 6) }, { l: "1 anno", v: aggiungiMesi(g, 12) }] },
     preparazione: { k: "preparazione", l: "Istruzioni prima", tipo: "textarea", hint: "Una per riga. Es: Digiuno dalla mezzanotte" },
-    portare: { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Una per riga. I referti dell'archivio li scegli dalla scheda della visita." },
+    portare: { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Solo le richieste particolari, una per riga (tessera, impegnativa e documentazione precedente non servono: le porti sempre)" },
     nre: { k: "nre", l: "Codice ricetta (NRE)", hint: "In alto sulla ricetta, sotto il codice a barre" },
     priorita: { k: "priorita", l: "Priorità sulla ricetta", tipo: "select", opzioni: [["", "—"], ...(Object.entries(PRIORITA) as [string, string][]).map(([k, v]) => [k, `${k} · ${v}`] as [string, string])] },
     data_ricetta: { k: "data_ricetta", l: "Data della ricetta", tipo: "date" },
