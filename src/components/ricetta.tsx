@@ -7,13 +7,20 @@ import { Sheet } from "./ui.tsx";
 /** Foto della ricetta → lettura automatica → modulo già compilato da controllare. */
 export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
   const { backend, sostituisci, toast } = useApp();
-  const [fase, setFase] = useState<"scegli" | "leggo">("scegli");
+  const [fase, setFase] = useState<"stato" | "scegli" | "leggo">("stato");
+  const [stato, setStato] = useState<Impegno["stato"]>("da_prenotare");
   const [anteprima, setAnteprima] = useState("");
   const foto = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
   const base: Partial<Impegno> = perVisitaId ? { tipo: "esame", per_visita_id: perVisitaId } : {};
 
-  const vaiAlModulo = (p: Partial<Impegno>) => sostituisci({ k: "formImpegno", iniziale: { ...base, ...p }, titolo: "Controlla e salva" });
+  const NOMI: Partial<Record<Impegno["stato"], string>> = { da_prenotare: "da prenotare", prenotato: "già prenotata", fatto: "già fatta" };
+  const vaiAlModulo = (p: Partial<Impegno>) =>
+    sostituisci({
+      k: "formImpegno",
+      iniziale: { ...base, ...p, stato, ...(stato === "fatto" ? { referto_ritirato: true } : {}) },
+      titolo: `Controlla e salva · ${NOMI[stato]}`,
+    });
 
   async function gestisci(file: File | undefined) {
     if (!file) return;
@@ -61,7 +68,30 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
 
   return (
     <Sheet titolo="Nuova ricetta">
-      {fase === "leggo" ? (
+      {fase === "stato" ? (
+        <div className="stack">
+          <p className="muted">Questa ricetta è…</p>
+          {(
+            [
+              ["da_prenotare", "Da prenotare", "Ricetta nuova: ti ricordo di prenotare e la scadenza"],
+              ["prenotato", "Già prenotata", "Inserisci data, ora e dove: ti ricordo l'appuntamento"],
+              ["fatto", "Già fatta", "Una vecchia da tenere in archivio: nessun promemoria"],
+            ] as [Impegno["stato"], string, string][]
+          ).map(([k, t, d]) => (
+            <button
+              key={k}
+              className={"card" + (k === "da_prenotare" ? " scelta-principale" : "")}
+              onClick={() => {
+                setStato(k);
+                setFase("scegli");
+              }}
+            >
+              <b style={{ fontSize: "1.1rem" }}>{t}</b>
+              <span className="small muted">{d}</span>
+            </button>
+          ))}
+        </div>
+      ) : fase === "leggo" ? (
         <div className="stack" style={{ alignItems: "center", textAlign: "center" }}>
           {anteprima && <img src={anteprima} alt="Ricetta" className="preview-img" style={{ maxHeight: 260, objectFit: "contain" }} />}
           <div className="spinner" />
@@ -69,6 +99,9 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
         </div>
       ) : (
         <div className="stack">
+          <button className="ghost" style={{ alignSelf: "flex-start", padding: 0, minHeight: 0 }} onClick={() => setFase("stato")}>
+            ← Ricetta {NOMI[stato]}
+          </button>
           <p className="muted">
             Fotografa la ricetta dall'alto, con buona luce, tutta dentro l'inquadratura. {backend.modalita === "cloud" && "Leggo io codice, esame e priorità."}
           </p>
