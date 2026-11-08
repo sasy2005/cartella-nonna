@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient, type Session } from "@supabase/supabase-js";
-import type { Dati, Profilo } from "../../supabase/functions/_shared/tipi.ts";
+import type { Dati, Profilo, Valore } from "../../supabase/functions/_shared/tipi.ts";
 import { PROFILO_VUOTO } from "../../supabase/functions/_shared/tipi.ts";
 import { datiDemo } from "./demo.ts";
 import { chiediMemoriaPersistente, fileConCache, memoriaLogin } from "./memoria.ts";
@@ -38,6 +38,13 @@ export interface LetturaPrenotazione {
   note_lettura: string;
 }
 
+export interface LetturaEsami {
+  data_prelievo: string;
+  laboratorio: string;
+  valori: Valore[];
+  note_lettura: string;
+}
+
 export interface Membro {
   email: string;
   nome: string;
@@ -57,6 +64,7 @@ export interface Backend {
   eliminaFile(path: string): Promise<void>;
   leggiRicetta(base64: string, mediaType: string): Promise<LetturaRicetta>;
   leggiPrenotazione(base64: string, mediaType: string): Promise<LetturaPrenotazione>;
+  leggiEsami(base64: string, mediaType: string): Promise<LetturaEsami>;
   membro(): Promise<Membro | null>;
   salvaMembro(m: Partial<Membro>): Promise<void>;
   inviaProva(): Promise<string>;
@@ -181,6 +189,9 @@ function cloud(session: Session): Backend {
     },
     async leggiPrenotazione(base64, mediaType) {
       return invoca<LetturaPrenotazione>("leggi-ricetta", { immagine: base64, media_type: mediaType, documento: "prenotazione" });
+    },
+    async leggiEsami(base64, mediaType) {
+      return invoca<LetturaEsami>("leggi-ricetta", { immagine: base64, media_type: mediaType, documento: "esami" });
     },
     async membro() {
       const r = await sb.from("membri").select("*").maybeSingle();
@@ -311,6 +322,9 @@ export function backendDemo(): Backend {
     },
     async leggiPrenotazione() {
       throw new Error("In modalità prova la lettura automatica non è attiva: compila i campi a mano.");
+    },
+    async leggiEsami() {
+      throw new Error("In modalità prova la lettura automatica non è attiva.");
     },
     async membro() {
       return null;

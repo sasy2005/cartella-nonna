@@ -1,17 +1,12 @@
 # Idee per dopo
 
-## Esami del sangue in evidenza
-- Riquadro fisso in cima all'Archivio: "Ultimi esami del sangue", sempre il referto più recente
-  (quelli vecchi restano in archivio come storico).
-- L'AI legge i valori principali dal referto (glicata, creatinina, emocromo, ferritina, …):
-  mostra i numeri, segna quelli fuori norma e se sono saliti o scesi rispetto alla volta prima.
-- Gli esami si ripetono ogni tot: promemoria per rifarli (già possibile con "Prossimo controllo").
+## Fatto
+- Esami del sangue in evidenza in Archivio, valori letti dall'AI (foto o PDF), confronto con la volta prima.
+- "Condividi → Nonna" su Android per i PDF che arrivano per email.
 
-## Referti che arrivano per email
-- Già possibile: scaricare il PDF dall'email → Archivio → + Documento → "Scegli foto o PDF".
-- Android (Motorola della mamma): l'app compare in "Condividi" (Web Share Target):
-  dall'email, Condividi → Nonna → il PDF viene salvato e letto dall'AI. Su iPhone non è possibile.
-- Più avanti: indirizzo email dedicato a cui inoltrare i referti, salvati in automatico.
+## Per dopo
+- Indirizzo email dedicato a cui inoltrare i referti, salvati in automatico.
+- Grafico dell'andamento nel tempo di un valore (es. glicata).
 
 ## Già pronte da riattivare
 - Pratiche (104 e aggravamento): codice in src/components/pratiche.tsx, tabella `pratiche` già nel database.

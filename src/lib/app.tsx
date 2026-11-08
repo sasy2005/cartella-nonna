@@ -15,7 +15,7 @@ export type Vista =
   | { k: "ricetta"; perVisitaId?: string }
   | { k: "contatto"; id?: string }
   | { k: "documento"; id: string }
-  | { k: "formDocumento"; iniziale: Record<string, unknown> }
+  | { k: "formDocumento"; iniziale: Record<string, unknown>; file?: File }
   | { k: "farmaco"; id?: string }
   | { k: "comprato"; id: string }
   | { k: "messaggioMedico"; ids?: string[] }

@@ -46,7 +46,7 @@ function Vista1({ v }: { v: Vista }) {
     case "ricetta": return <SchermataRicetta perVisitaId={v.perVisitaId} />;
     case "contatto": return <FormContatto id={v.id} />;
     case "documento": return <DettaglioDocumento id={v.id} />;
-    case "formDocumento": return <FormDocumento iniziale={v.iniziale} />;
+    case "formDocumento": return <FormDocumento iniziale={v.iniziale} file={v.file} />;
     case "farmaco": return <FormFarmaco id={v.id} />;
     case "comprato": return <FormComprato id={v.id} />;
     case "messaggioMedico": return <MessaggioMedico ids={v.ids} />;
@@ -60,7 +60,7 @@ function Vista1({ v }: { v: Vista }) {
 }
 
 function Guscio() {
-  const { dati, pila } = useApp();
+  const { dati, pila, apri } = useApp();
   const [scheda, setScheda] = useState<Scheda>(leggiScheda);
   const [inizioVisite, setInizioVisite] = useState<{ f: Filtro; n: number }>({ f: location.hash === "#calendario" ? "calendario" : "da_prenotare", n: 0 });
   useEffect(() => {
@@ -71,6 +71,28 @@ function Guscio() {
     window.addEventListener("hashchange", f);
     return () => window.removeEventListener("hashchange", f);
   }, []);
+  // File arrivato da "Condividi → Nonna": si apre il modulo del nuovo documento con il file già caricato
+  useEffect(() => {
+    if (location.hash !== "#condividi") return;
+    history.replaceState(null, "", "#archivio");
+    setScheda("archivio");
+    (async () => {
+      try {
+        const c = await caches.open("cartella-nonna-condivisi");
+        const r = await c.match("ultimo");
+        if (!r) return;
+        await c.delete("ultimo");
+        const nome = decodeURIComponent(r.headers.get("x-nome") ?? "") || "documento";
+        const file = new File([await r.blob()], nome, { type: r.headers.get("content-type") ?? "" });
+        const esami = /sangue|analisi|esami|emocromo|laboratorio|lab/i.test(nome);
+        apri({ k: "formDocumento", iniziale: esami ? { tipo: "Esami del sangue", titolo: "Esami del sangue", specialita: "Laboratorio analisi" } : {}, file });
+      } catch {
+        /* niente da aprire */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const urgenti = calcolaAvvisi(dati, oggi()).filter((a) => a.livello === "urgente").length;
   const daPrenotare = dati.impegni.filter((i) => i.stato === "da_prenotare").length;
   const cima = pila[pila.length - 1];

@@ -76,7 +76,14 @@ export function datiDemo(): Dati {
     ],
     documenti: [
       { id: id(), titolo: "Referto visita nefrologica", tipo: "Referto", specialita: "Nefrologia", data: aggiungiGiorni(g, -60), note: "Esempio senza foto. Controllo tra 1 anno.", file_path: null, file_tipo: "", impegno_id: visitaNefro.id },
-      { id: id(), titolo: "Esami del sangue", tipo: "Esami", specialita: "Laboratorio analisi", data: aggiungiGiorni(g, -95), note: "Esempio senza foto.", file_path: null, file_tipo: "", impegno_id: null },
+      { id: id(), titolo: "Esami del sangue", tipo: "Esami del sangue", specialita: "Laboratorio analisi", data: aggiungiGiorni(g, -20), note: "Esempio senza foto.", file_path: null, file_tipo: "", impegno_id: null, valori: [
+        { nome: "Emoglobina glicata", valore: "7,4", unita: "%", riferimento: "4,0 - 6,0", fuori: "alto" as const }, { nome: "Glucosio", valore: "142", unita: "mg/dL", riferimento: "70 - 100", fuori: "alto" as const }, { nome: "Creatinina", valore: "1,21", unita: "mg/dL", riferimento: "0,50 - 1,10", fuori: "alto" as const },
+        { nome: "eGFR", valore: "44", unita: "mL/min", riferimento: "> 60", fuori: "basso" as const }, { nome: "Emoglobina", valore: "11,8", unita: "g/dL", riferimento: "12,0 - 16,0", fuori: "basso" as const }, { nome: "Ferritina", valore: "38", unita: "ng/mL", riferimento: "15 - 150", fuori: "" as const },
+        { nome: "Globuli bianchi", valore: "6,9", unita: "10^3/µL", riferimento: "4,0 - 10,0", fuori: "" as const }, { nome: "Piastrine", valore: "231", unita: "10^3/µL", riferimento: "150 - 400", fuori: "" as const }, { nome: "Potassio", valore: "4,6", unita: "mmol/L", riferimento: "3,5 - 5,1", fuori: "" as const },
+        { nome: "Colesterolo totale", valore: "176", unita: "mg/dL", riferimento: "< 200", fuori: "" as const } ] },
+      { id: id(), titolo: "Esami del sangue", tipo: "Esami del sangue", specialita: "Laboratorio analisi", data: aggiungiGiorni(g, -110), note: "Esempio senza foto.", file_path: null, file_tipo: "", impegno_id: null, valori: [
+        { nome: "Emoglobina glicata", valore: "7,8", unita: "%", riferimento: "4,0 - 6,0", fuori: "alto" as const }, { nome: "Glucosio", valore: "156", unita: "mg/dL", riferimento: "70 - 100", fuori: "alto" as const }, { nome: "Creatinina", valore: "1,15", unita: "mg/dL", riferimento: "0,50 - 1,10", fuori: "alto" as const },
+        { nome: "eGFR", valore: "47", unita: "mL/min", riferimento: "> 60", fuori: "basso" as const }, { nome: "Emoglobina", valore: "12,1", unita: "g/dL", riferimento: "12,0 - 16,0", fuori: "" as const }, { nome: "Ferritina", valore: "45", unita: "ng/mL", riferimento: "15 - 150", fuori: "" as const } ] },
     ],
     farmaci: [
       { id: id(), nome: "Metformina 500 mg", quando: "Durante il pasto", momenti: { colazione: 1, cena: 1 }, per_giorno: 2, scorta: 30, scorta_al: aggiungiGiorni(g, -11), note: "Esempio", attivo: true },

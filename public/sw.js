@@ -1,7 +1,8 @@
 // Service worker: apertura veloce anche con rete debole + notifiche del mattino.
 // Le pagine si prendono prima dalla rete (così gli aggiornamenti arrivano subito),
 // i file statici dalla cache. I dati (Supabase) non passano mai di qui.
-const CACHE = "cartella-nonna-v2";
+const CACHE = "cartella-nonna-v3";
+const CONDIVISI = "cartella-nonna-condivisi";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => {
@@ -13,6 +14,25 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
+  // "Condividi → Nonna" (Android): il file arriva qui, lo teniamo da parte e apriamo l'app
+  if (req.method === "POST" && url.origin === self.location.origin && url.pathname.endsWith("/condividi")) {
+    e.respondWith(
+      (async () => {
+        try {
+          const dati = await req.formData();
+          const file = dati.getAll("file").find((f) => f && typeof f !== "string");
+          if (file) {
+            const c = await caches.open(CONDIVISI);
+            await c.put("ultimo", new Response(file, { headers: { "content-type": file.type || "application/octet-stream", "x-nome": encodeURIComponent(file.name || "") } }));
+          }
+        } catch (_) {
+          /* niente file: si apre comunque l'app */
+        }
+        return Response.redirect(new URL("./#condividi", self.registration.scope).href, 303);
+      })(),
+    );
+    return;
+  }
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
   if (req.mode === "navigate") {
     e.respondWith(
@@ -40,6 +60,8 @@ self.addEventListener("fetch", (e) => {
     ),
   );
 });
+
+// (le pagine vecchie in cache vengono rimosse all'attivazione)
 
 // Notifica in arrivo dal server
 self.addEventListener("push", (e) => {

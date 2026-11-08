@@ -1,5 +1,6 @@
 // Legge la foto di una ricetta del Servizio Sanitario (documento: "ricetta")
-// o di un foglio di prenotazione (documento: "prenotazione") e restituisce i campi compilati.
+// o di un foglio di prenotazione (documento: "prenotazione") o degli esami del sangue (documento: "esami",
+// anche PDF) e restituisce i campi compilati.
 // Richiede il segreto ANTHROPIC_API_KEY (vedi GUIDA.md).
 import Anthropic from "npm:@anthropic-ai/sdk@1.6.0";
 import { admin, cors, json, membroDa } from "../_shared/server.ts";
@@ -88,6 +89,46 @@ Compila così:
 - note_lettura: cosa non hai potuto leggere con sicurezza. Stringa vuota se è tutto chiaro.
 Se la foto non è un foglio di prenotazione, lascia vuoti i campi e spiegalo in note_lettura.`;
 
+const SCHEMA_ESAMI = {
+  type: "object",
+  additionalProperties: false,
+  required: ["data_prelievo", "laboratorio", "valori", "note_lettura"],
+  properties: {
+    data_prelievo: { type: "string" },
+    laboratorio: { type: "string" },
+    valori: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["nome", "valore", "unita", "riferimento", "fuori"],
+        properties: {
+          nome: { type: "string" },
+          valore: { type: "string" },
+          unita: { type: "string" },
+          riferimento: { type: "string" },
+          fuori: { type: "string", enum: ["alto", "basso", ""] },
+        },
+      },
+    },
+    note_lettura: { type: "string" },
+  },
+};
+
+const ISTRUZIONI_ESAMI = `Leggi il referto di esami del sangue (o delle urine) di un laboratorio italiano. Serve a una figlia che segue la madre anziana (diabete, problemi ai reni, al fegato, al sangue): i valori verranno mostrati in un riquadro e confrontati con quelli degli esami precedenti. Preferisci un campo vuoto a un valore inventato.
+
+Compila così:
+- data_prelievo: la data del prelievo (o di accettazione) in formato AAAA-MM-GG, non quella di stampa se diversa.
+- laboratorio: il nome del laboratorio o dell'ospedale.
+- valori: TUTTI gli esami con un risultato, nell'ordine del referto. Per ognuno:
+  - nome: il nome comune in italiano, sempre uguale tra un referto e l'altro, senza codici o metodi (es. "Emoglobina glicata", "Glucosio", "Creatinina", "eGFR", "Emoglobina", "Globuli bianchi", "Piastrine", "Ferritina", "Colesterolo totale"). Per le sigle usa il nome esteso più comune (HbA1c → "Emoglobina glicata").
+  - valore: il risultato come scritto, con la virgola italiana (es. "7,4", "< 0,5", "negativo").
+  - unita: l'unità di misura (es. "%", "mg/dL", "g/dL"), vuota se non c'è.
+  - riferimento: l'intervallo di riferimento come scritto (es. "4,0 - 6,0"), vuoto se non c'è.
+  - fuori: "alto" o "basso" se il valore è fuori dall'intervallo (o è segnalato con H/L, asterisco, grassetto), altrimenti stringa vuota.
+- note_lettura: cosa non hai potuto leggere con sicurezza. Stringa vuota se è tutto chiaro.
+Se il documento non è un referto di esami, lascia la lista vuota e spiegalo in note_lettura.`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ errore: "Metodo non permesso" }, 405);
@@ -104,23 +145,29 @@ Deno.serve(async (req) => {
   const { immagine, media_type = "image/jpeg" } = body;
   if (!immagine || typeof immagine !== "string") return json({ errore: "Manca la foto" }, 400);
   if (immagine.length > 7_000_000) return json({ errore: "Foto troppo grande" }, 413);
-  if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(media_type)) return json({ errore: "Formato foto non supportato" }, 400);
+  const esami = body.documento === "esami";
+  const tipiOk = ["image/jpeg", "image/png", "image/webp", "image/gif", ...(esami ? ["application/pdf"] : [])];
+  if (!tipiOk.includes(media_type)) return json({ errore: "Formato non supportato" }, 400);
+  const schema = esami ? SCHEMA_ESAMI : body.documento === "prenotazione" ? SCHEMA_PRENOTAZIONE : SCHEMA;
+  const istruzioni = esami ? ISTRUZIONI_ESAMI : body.documento === "prenotazione" ? ISTRUZIONI_PRENOTAZIONE : ISTRUZIONI;
+  const richiesta = esami ? "Leggi questo referto e compila i campi." : body.documento === "prenotazione" ? "Leggi questo foglio di prenotazione e compila i campi." : "Leggi questa ricetta e compila i campi.";
+  const allegato =
+    media_type === "application/pdf"
+      ? ({ type: "document", source: { type: "base64", media_type: "application/pdf", data: immagine } } as const)
+      : ({ type: "image", source: { type: "base64", media_type: media_type as "image/jpeg", data: immagine } } as const);
 
   try {
     const r = await client.beta.messages.create({
       model: "claude-sonnet-5-5",
-      max_tokens: 8000,
+      max_tokens: esami ? 16000 : 8000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      output_config: { effort: "low", format: { type: "json_schema", schema: body.documento === "prenotazione" ? SCHEMA_PRENOTAZIONE : SCHEMA } },
-      system: body.documento === "prenotazione" ? ISTRUZIONI_PRENOTAZIONE : ISTRUZIONI,
+      output_config: { effort: "low", format: { type: "json_schema", schema } },
+      system: istruzioni,
       messages: [
         {
           role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: media_type as "image/jpeg", data: immagine } },
-            { type: "text", text: body.documento === "prenotazione" ? "Leggi questo foglio di prenotazione e compila i campi." : "Leggi questa ricetta e compila i campi." },
-          ],
+          content: [allegato, { type: "text", text: richiesta }],
         },
       ],
     });

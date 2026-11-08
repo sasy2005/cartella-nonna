@@ -95,6 +95,19 @@ export interface Contatto {
   note: string;
 }
 
+/** Un valore degli esami del sangue (es. Emoglobina glicata 7,4 %). */
+export interface Valore {
+  nome: string;
+  /** Come scritto sul referto (es. "7,4", "< 0,5", "negativo"). */
+  valore: string;
+  unita: string;
+  riferimento: string;
+  /** "alto" / "basso" se fuori dall'intervallo, altrimenti "". */
+  fuori: "alto" | "basso" | "";
+}
+
+export const TIPO_ESAMI_SANGUE = "Esami del sangue";
+
 export interface Documento {
   id: string;
   titolo: string;
@@ -105,6 +118,8 @@ export interface Documento {
   file_path: string | null;
   file_tipo: string;
   impegno_id: string | null;
+  /** Solo per gli esami del sangue: i valori letti dal referto. */
+  valori?: Valore[];
 }
 
 export const MOMENTI = ["colazione", "pranzo", "cena", "sera"] as const;
