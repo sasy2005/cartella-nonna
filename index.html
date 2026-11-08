@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#1f5f8b" />
+    <meta name="theme-color" content="#f6f4f1" />
+    <script>
+      // colori scelti su questo telefono, applicati prima di disegnare la pagina (niente lampi)
+      try {
+        var t = localStorage.getItem("cartella-nonna-tema"), a = localStorage.getItem("cartella-nonna-aspetto");
+        if (t) document.documentElement.dataset.tema = t;
+        if (a && a !== "auto") document.documentElement.dataset.aspetto = a;
+      } catch (e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nonna" />

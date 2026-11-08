@@ -2,6 +2,42 @@ import { useState } from "react";
 import { useApp } from "../lib/app.tsx";
 import { Modulo, Sheet, type Campo } from "./ui.tsx";
 import { CardNotifiche } from "./notifiche.tsx";
+import { TEMI, leggiTema, salvaTema, type Aspetto, type Tema } from "../lib/tema.ts";
+
+function CardAspetto() {
+  const [scelta, setScelta] = useState(leggiTema);
+  const cambia = (tema: Tema, aspetto: Aspetto) => {
+    setScelta({ tema, aspetto });
+    salvaTema(tema, aspetto);
+  };
+  return (
+    <div className="card">
+      <h3>Colori</h3>
+      <div className="temi">
+        {TEMI.map((t) => (
+          <button key={t.id} aria-pressed={scelta.tema === t.id} onClick={() => cambia(t.id, scelta.aspetto)}>
+            <span className="campione" style={{ ["--c" as string]: t.chiaro }} />
+            {t.nome}
+          </button>
+        ))}
+      </div>
+      <div className="segmentato" role="group" aria-label="Aspetto">
+        {(
+          [
+            ["auto", "Automatico"],
+            ["chiaro", "Chiaro"],
+            ["scuro", "Scuro"],
+          ] as [Aspetto, string][]
+        ).map(([a, l]) => (
+          <button key={a} aria-pressed={scelta.aspetto === a} onClick={() => cambia(scelta.tema, a)}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <p className="small muted">Vale solo per questo telefono. Automatico segue il telefono (chiaro di giorno, scuro se lo usi scuro).</p>
+    </div>
+  );
+}
 
 export function FormProfilo() {
   const { dati, salvaProfilo, chiudi, toast } = useApp();
@@ -53,6 +89,8 @@ export function SchermataImpostazioni() {
       </button>
 
       <CardNotifiche />
+
+      <CardAspetto />
 
       <div className="card">
         <h3>Copia di sicurezza</h3>

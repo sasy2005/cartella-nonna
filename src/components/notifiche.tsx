@@ -107,7 +107,7 @@ export function CardNotifiche() {
       </div>
       <p className="small muted">Ogni mattina verso le 7 arriva una notifica con le cose da fare. Se non c'è niente, non arriva niente.</p>
       {backend.modalita === "cloud" && ultimo !== undefined && (
-        <p className={"small " + (ultimo && Date.now() - new Date(ultimo.quando).getTime() > 36 * 3600 * 1000 ? "chip warn" : "muted")} style={{ whiteSpace: "normal" }}>
+        <p className={"small " + (ultimo && Date.now() - new Date(ultimo.quando).getTime() > 36 * 3600 * 1000 ? "chip blocco warn" : "muted")}>
           {ultimo
             ? `Ultimo controllo: ${new Date(ultimo.quando).toLocaleString("it-IT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${
                 ultimo.niente ? "niente da ricordare" : `${ultimo.notifiche} ${ultimo.notifiche === 1 ? "notifica inviata" : "notifiche inviate"}`

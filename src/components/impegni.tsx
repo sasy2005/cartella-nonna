@@ -58,7 +58,7 @@ export function StatoRiga({ imp }: { imp: Impegno }) {
     return (
       <>
         {sc ? (
-          <span className={"small " + (n! <= 14 ? "chip crit" : n! <= 30 ? "chip warn" : "muted")} style={{ whiteSpace: "normal" }}>
+          <span className={"small " + (n! <= 14 ? "chip blocco crit" : n! <= 30 ? "chip blocco warn" : "muted")}>
             {n! < 0 ? "In ritardo! " : ""}Da fare entro il {giornoBreve(sc.giorno, g)} · {sc.motivo}
           </span>
         ) : (
@@ -83,7 +83,7 @@ export function StatoRiga({ imp }: { imp: Impegno }) {
   const rit = ritiroDi(imp);
   if (rit)
     return (
-      <span className={"chip " + (rit <= g ? "warn" : "acc")} style={{ whiteSpace: "normal" }}>
+      <span className={"chip blocco " + (rit <= g ? "warn" : "acc")}>
         Referto da ritirare {rit <= g ? "(già pronto)" : "dal " + giornoBreve(rit, g)}
       </span>
     );
@@ -242,7 +242,7 @@ export function DettaglioImpegno({ id }: { id: string }) {
         <StatoRiga imp={imp} />
         {contatto && <span className="small">Presso: {contatto.nome}</span>}
         {visita && (
-          <button className="ghost" style={{ justifyContent: "flex-start", padding: 0 }} onClick={() => apri({ k: "impegno", id: visita.id })}>
+          <button className="ghost" style={{ justifyContent: "flex-start", padding: 0, textAlign: "left" }} onClick={() => apri({ k: "impegno", id: visita.id })}>
             Serve per: {visita.titolo} →
           </button>
         )}
@@ -584,7 +584,7 @@ export function Calendario({ spec = "Tutte", compatto = false }: { spec?: string
     setScelto(null);
   };
   return (
-    <section>
+    <section style={compatto ? { marginTop: 0 } : undefined}>
       <div className="row between">
         <button className="mini" onClick={() => cambia(-1)} aria-label="Mese precedente">
           ←
@@ -610,7 +610,7 @@ export function Calendario({ spec = "Tutte", compatto = false }: { spec?: string
           return (
             <button
               key={d}
-              className={"giorno" + (d.slice(0, 7) !== mese ? " fuori" : "") + (d === g ? " oggi" : "")}
+              className={"giorno" + (d.slice(0, 7) !== mese ? " fuori" : "") + (d === g ? " oggi" : "") + (imp.length ? " con-visite" : "")}
               aria-pressed={scelto === d}
               aria-label={`${giornoEsteso(d)}${imp.length ? `, ${imp.length} appuntamenti` : ""}`}
               onClick={() => setScelto(compatto && scelto === d ? null : d)}

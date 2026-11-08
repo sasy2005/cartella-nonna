@@ -7,6 +7,7 @@ export function Sheet({ titolo, children, sopra }: { titolo: ReactNode; children
   return (
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && chiudi()}>
       <div className="sheet" role="dialog" aria-modal="true">
+        <div className="maniglia" aria-hidden="true" />
         <div className="row between">
           <div className="grow">{sopra}</div>
           <button className="ghost" onClick={() => chiudi()}>
@@ -204,6 +205,22 @@ export const ICONE: Record<string, ReactNode> = {
       <path d="M5 9v10h14V9M10 13h4" />
     </>
   ),
+  fotocamera: (
+    <>
+      <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </>
+  ),
+  ripeti: <path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4" />,
+  documento: <path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h4" />,
+  ingranaggio: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+    </>
+  ),
+  freccia: <path d="M9 5l7 7-7 7" />,
+  spunta: <path d="M5 12.5l4.5 4.5L19 7.5" />,
 };
 
 export function Icona({ nome }: { nome: string }) {

@@ -87,7 +87,7 @@ export function SchermataChiamata({ id }: { id: string }) {
                 </a>
               )}
               {u && (
-                <span className="small chip warn" style={{ whiteSpace: "normal" }}>
+                <span className="small chip blocco warn">
                   {relativo(g, giornoDi(u.quando))}: {u.esito || "nessun posto"}
                 </span>
               )}
