@@ -239,7 +239,7 @@ export function calcolaAvvisi(dati: Dati, g: string): Avviso[] {
       livello: rim <= 5 ? "urgente" : "attenzione",
       categoria: "farmaco",
       titolo: rim <= 0 ? `${f.nome} è finito` : `${f.nome} finisce tra ${rim} ${rim === 1 ? "giorno" : "giorni"}`,
-      dettaglio: [`Resta senza circa il ${giornoBreve(aggiungiGiorni(g, rim), g)}`, "Tocca per il messaggio al medico di base"],
+      dettaglio: [`Resta senza circa il ${giornoBreve(aggiungiGiorni(g, rim), g)}`, "Tocca per l'email al medico di base"],
       farmaco_id: f.id,
       giorno: aggiungiGiorni(g, rim),
     });

@@ -39,11 +39,11 @@ function base(p: Partial<Impegno>): Impegno {
 
 export function datiDemo(): Dati {
   const g = oggi();
-  const cup = { id: id(), nome: "Prenotazioni Regione Lombardia", tipo: "struttura" as const, specialita: "Altro", telefono: "800 638 638", orari: "Da cellulare: 02 999 599", sito: "https://www.prenotasalute.regione.lombardia.it/", note: "Numero verde regionale. Si può prenotare anche online." };
-  const osp = { id: id(), nome: "Ospedale (esempio)", tipo: "struttura" as const, specialita: "Altro", telefono: "02 0000 0001", orari: "CUP ospedale lun–ven 8–16", sito: "", note: "Esempio: il più vicino a casa." };
-  const lab = { id: id(), nome: "Laboratorio prelievi (esempio)", tipo: "struttura" as const, specialita: "Laboratorio analisi", telefono: "02 0000 0002", orari: "Prelievi 7:30–10", sito: "", note: "Referti online dopo 3 giorni." };
-  const mmg = { id: id(), nome: "Medico di base (esempio)", tipo: "medico" as const, specialita: "Medicina generale", telefono: "02 0000 0003", orari: "Ricette via WhatsApp, pronte in 2 giorni", sito: "", note: "" };
-  const ema = { id: id(), nome: "Ematologo (esempio)", tipo: "medico" as const, specialita: "Ematologia", telefono: "02 0000 0004", orari: "", sito: "", note: "" };
+  const cup = { id: id(), nome: "Prenotazioni Regione Lombardia", tipo: "struttura" as const, email: "", specialita: "Altro", telefono: "800 638 638", orari: "Da cellulare: 02 999 599", sito: "https://www.prenotasalute.regione.lombardia.it/", note: "Numero verde regionale. Si può prenotare anche online." };
+  const osp = { id: id(), nome: "Ospedale (esempio)", tipo: "struttura" as const, email: "", specialita: "Altro", telefono: "02 0000 0001", orari: "CUP ospedale lun–ven 8–16", sito: "", note: "Esempio: il più vicino a casa." };
+  const lab = { id: id(), nome: "Laboratorio prelievi (esempio)", tipo: "struttura" as const, email: "", specialita: "Laboratorio analisi", telefono: "02 0000 0002", orari: "Prelievi 7:30–10", sito: "", note: "Referti online dopo 3 giorni." };
+  const mmg = { id: id(), nome: "Medico di base (esempio)", tipo: "medico" as const, specialita: "Medicina generale", telefono: "", email: "medico.esempio@example.com", orari: "Ricette per email, pronte in 2 giorni", sito: "", note: "" };
+  const ema = { id: id(), nome: "Ematologo (esempio)", tipo: "medico" as const, email: "", specialita: "Ematologia", telefono: "02 0000 0004", orari: "", sito: "", note: "" };
 
   const visitaEma = base({ tipo: "visita", titolo: "Visita ematologica di controllo", specialita: "Ematologia", stato: "prenotato", data: quando(24, "10:30"), luogo: "Ospedale, ambulatorio ematologia", contatto_id: osp.id, portare: "Esami del sangue\nUltimo referto ematologico\nLista farmaci", prescrittore: "Medico di base" });
   const sangue = base({ titolo: "Esami del sangue (emocromo, ferritina)", specialita: "Laboratorio analisi", per_visita_id: visitaEma.id, giorni_referto: 3, nre: "0301A 4000000001", priorita: "D", data_ricetta: aggiungiGiorni(g, -10), scadenza_ricetta: aggiungiGiorni(g, 20), prescrittore: "Medico di base", preparazione: "Digiuno dalla mezzanotte (solo acqua)\nFare l'insulina dopo il prelievo, con la colazione" });

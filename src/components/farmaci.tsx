@@ -42,7 +42,7 @@ export function SchermataFarmaci() {
             <b>
               {inEsaurimento.length} {inEsaurimento.length === 1 ? "farmaco sta" : "farmaci stanno"} per finire
             </b>
-            <span className="small">Tocca per preparare il messaggio per il medico</span>
+            <span className="small">Tocca per preparare l'email al medico di base</span>
           </button>
         )}
         {attivi.length > 0 && (
@@ -83,7 +83,7 @@ export function SchermataFarmaci() {
                 )}
                 {r !== null && r <= 15 && (
                   <button className="mini" onClick={() => apri({ k: "messaggioMedico", ids: [f.id] })}>
-                    Chiedi la ricetta al medico
+                    Chiedi la ricetta al medico (email)
                   </button>
                 )}
                 <div className="row">
@@ -307,42 +307,66 @@ export function StampaTerapia() {
   );
 }
 
-/** Bozza del messaggio al medico di base per chiedere le ricette dei farmaci che stanno finendo. */
+const K_FIRMA = "cartella-nonna-firma";
+function leggiFirma(): string {
+  try {
+    return localStorage.getItem(K_FIRMA) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Email (o messaggio) pronta per chiedere al medico di base le ricette dei farmaci che stanno finendo. */
 export function MessaggioMedico({ ids = [] }: { ids?: string[] }) {
   const { dati, toast, apri } = useApp();
   const g = oggi();
   const tutti = dati.farmaci.filter((f) => f.attivo).sort((a, b) => (giorniRimasti(a, g) ?? 999) - (giorniRimasti(b, g) ?? 999));
   const [scelti, setScelti] = useState<string[]>(() => [...new Set([...ids, ...tutti.filter((f) => (giorniRimasti(f, g) ?? 99) <= 15).map((f) => f.id)])]);
+  const [firma, setFirma] = useState(leggiFirma);
   const medico = dati.contatti.find((c) => c.specialita === "Medicina generale" && c.tipo === "medico");
   const nonna = dati.profilo.nome || "mia madre";
+  const oggetto = `Richiesta ricette per ${nonna}`;
 
-  const componi = (sel: string[]) => {
+  const componi = (sel: string[], f: string) => {
     const righe = tutti
-      .filter((f) => sel.includes(f.id))
-      .map((f) => `- ${f.nome}${alGiorno(f) ? ` (${quantita(alGiorno(f))} al giorno)` : ""}`);
+      .filter((x) => sel.includes(x.id))
+      .map((x) => `- ${x.nome}${alGiorno(x) ? ` (${quantita(alGiorno(x))} al giorno)` : ""}`);
     return [
-      `Buongiorno${medico ? " " + medico.nome : " dottore"},`,
-      `avrei bisogno delle ricette per ${nonna}${dati.profilo.cf ? ` (C.F. ${dati.profilo.cf})` : ""}:`,
+      `Gentile ${medico ? medico.nome : "dottore"},`,
+      "",
+      `le scrivo per chiederle le ricette dei seguenti farmaci per ${nonna}${dati.profilo.cf ? ` (C.F. ${dati.profilo.cf})` : ""}:`,
       ...righe,
       "",
-      "Quando posso passare a ritirarle? Grazie mille, buona giornata.",
+      "La ringrazio molto.",
+      "Cordiali saluti",
+      ...(f.trim() ? [f.trim()] : []),
     ].join("\n");
   };
-  const [testo, setTesto] = useState(() => componi(scelti));
+  const [testo, setTesto] = useState(() => componi(scelti, firma));
   const [modificato, setModificato] = useState(false);
   const scegli = (id: string, si: boolean) => {
     const nuovi = si ? [...scelti, id] : scelti.filter((x) => x !== id);
     setScelti(nuovi);
-    if (!modificato) setTesto(componi(nuovi));
+    if (!modificato) setTesto(componi(nuovi, firma));
+  };
+  const cambiaFirma = (f: string) => {
+    setFirma(f);
+    try {
+      localStorage.setItem(K_FIRMA, f);
+    } catch {
+      /* niente */
+    }
+    if (!modificato) setTesto(componi(scelti, f));
   };
 
+  const email = medico?.email?.trim() ?? "";
+  const mailto = `mailto:${email}?subject=${encodeURIComponent(oggetto)}&body=${encodeURIComponent(testo)}`;
   const tel = medico?.telefono.replace(/[^\d]/g, "") ?? "";
   const telIntl = tel ? (tel.startsWith("39") ? tel : "39" + tel) : "";
   const wa = `https://wa.me/${telIntl}?text=${encodeURIComponent(testo)}`;
-  const sms = `sms:${tel ? "+" + telIntl : ""}?&body=${encodeURIComponent(testo)}`;
 
   return (
-    <Sheet titolo="Messaggio per il medico di base">
+    <Sheet titolo="Email per il medico di base">
       <div className="card">
         <span className="eyebrow">Farmaci da chiedere</span>
         {tutti.map((f) => {
@@ -360,8 +384,14 @@ export function MessaggioMedico({ ids = [] }: { ids?: string[] }) {
           );
         })}
       </div>
+      <div className="card" style={{ gap: 4 }}>
+        <span className="eyebrow">A</span>
+        <span>{email || <span className="muted">manca l'email del medico</span>}</span>
+        <span className="eyebrow" style={{ marginTop: 6 }}>Oggetto</span>
+        <span>{oggetto}</span>
+      </div>
       <label htmlFor="bozza">
-        Messaggio
+        Testo
         <span className="hint">Puoi cambiarlo come vuoi prima di mandarlo</span>
         <textarea
           id="bozza"
@@ -370,40 +400,54 @@ export function MessaggioMedico({ ids = [] }: { ids?: string[] }) {
             setTesto(e.target.value);
             setModificato(true);
           }}
-          style={{ minHeight: 190 }}
+          style={{ minHeight: 230 }}
         />
+      </label>
+      <label htmlFor="firma">
+        Firma
+        <span className="hint">Il tuo nome, in fondo all'email (lo ricordo su questo telefono)</span>
+        <input id="firma" value={firma} onChange={(e) => cambiaFirma(e.target.value)} placeholder="Es: Anna, la figlia" />
       </label>
       {modificato && (
         <button
           className="ghost"
           onClick={() => {
-            setTesto(componi(scelti));
+            setTesto(componi(scelti, firma));
             setModificato(false);
           }}
         >
-          Rifai il messaggio dai farmaci scelti
+          Rifai il testo dai farmaci scelti
         </button>
       )}
-      <a className={"btn primary big" + (scelti.length ? "" : " disabilitato")} href={wa} target="_blank" rel="noreferrer">
-        Manda su WhatsApp{medico ? " a " + medico.nome : ""}
+      <a className={"btn primary big" + (scelti.length ? "" : " disabilitato")} href={mailto}>
+        Apri l'email pronta
       </a>
       <div className="row">
-        <a className="btn grow" href={sms}>
-          Manda SMS
-        </a>
-        <button className="grow" onClick={() => copia(testo, toast)}>
+        <button className="grow" onClick={() => copia(`${oggetto}\n\n${testo}`, toast)}>
           Copia il testo
         </button>
+        {tel && (
+          <a className="btn grow" href={wa} target="_blank" rel="noreferrer">
+            WhatsApp
+          </a>
+        )}
       </div>
       {!medico ? (
         <div className="alert small">
-          Il medico di base non è in Rubrica: WhatsApp ti chiederà a chi mandarlo.
+          Il medico di base non è in Rubrica.
           <button className="ghost" style={{ justifyContent: "flex-start", padding: 0 }} onClick={() => apri({ k: "contatto" })}>
-            Aggiungi il medico di base →
+            Aggiungi il medico di base con la sua email →
           </button>
         </div>
       ) : (
-        !medico.telefono && <p className="small muted">Aggiungi il telefono di {medico.nome} in Rubrica per mandarglielo direttamente.</p>
+        !email && (
+          <div className="alert small">
+            Manca l'email di {medico.nome}: l'app di posta si apre senza destinatario.
+            <button className="ghost" style={{ justifyContent: "flex-start", padding: 0 }} onClick={() => apri({ k: "contatto", id: medico.id })}>
+              Aggiungi l'email in Rubrica →
+            </button>
+          </div>
+        )
       )}
       <p className="small muted">Quando ritiri le ricette e compri le scatole, premi “Ho comprato” sul farmaco.</p>
     </Sheet>

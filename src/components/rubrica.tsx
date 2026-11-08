@@ -21,6 +21,11 @@ export function SchermataRubrica() {
           {c.telefono}
         </a>
       )}
+      {c.email && (
+        <a className="small" href={"mailto:" + c.email}>
+          {c.email}
+        </a>
+      )}
       {c.orari && <span className="small muted">{c.orari}</span>}
       {c.note && <span className="small">{c.note}</span>}
       <div className="row">
@@ -48,7 +53,7 @@ export function SchermataRubrica() {
       </section>
       <section>
         <h2>Medici</h2>
-        <p className="small muted">Metti almeno il medico di base (reparto “Medicina generale”): così dai Farmaci gli mandi su WhatsApp la richiesta delle ricette.</p>
+        <p className="small muted">Metti almeno il medico di base (reparto “Medicina generale”) con la sua email: così dai Farmaci gli mandi la richiesta delle ricette già scritta.</p>
         {medici.length ? medici.map((c) => <Card key={c.id} c={c} />) : <Vuoto>Aggiungi il medico di base e gli specialisti.</Vuoto>}
       </section>
     </>
@@ -58,15 +63,17 @@ export function SchermataRubrica() {
 export function FormContatto({ id }: { id?: string }) {
   const { dati, salva, elimina, chiudi } = useApp();
   const [conferma, setConferma] = useState(false);
-  const c: Contatto = dati.contatti.find((x) => x.id === id) ?? { id: uuid(), nome: "", tipo: "medico", specialita: "Medicina generale", telefono: "", orari: "", sito: "", note: "" };
+  const trovato = dati.contatti.find((x) => x.id === id);
+  const c: Contatto = trovato ? { ...trovato, email: trovato.email ?? "" } : { id: uuid(), nome: "", tipo: "medico", specialita: "Medicina generale", telefono: "", email: "", orari: "", sito: "", note: "" };
   const campi: Campo[] = [
     { k: "nome", l: "Nome", hint: "Es: Dott.ssa Bianchi (così il messaggio inizia con «Buongiorno Dott.ssa Bianchi»)" },
     { k: "tipo", l: "È un", tipo: "select", opzioni: [["medico", "Medico"], ["struttura", "Numero per prenotare (CUP, ospedale)"]] },
     { k: "specialita", l: "Reparto", tipo: "select", opzioni: SPECIALITA.map((s) => [s, s]) },
     { k: "telefono", l: "Telefono", tipo: "tel" },
+    { k: "email", l: "Email", tipo: "email", hint: "Per il medico di base: l'indirizzo a cui chiedere le ricette" },
     { k: "orari", l: "Orari e come contattarlo", hint: "Es: chiamare dopo le 10, premere 2" },
     { k: "sito", l: "Sito per prenotare online", tipo: "url" },
-    { k: "note", l: "Note", tipo: "textarea" },
+    { k: "note", l: "Note", tipo: "textarea", hint: "Es: Visite: prenotare con l'app Healthy" },
   ];
   return (
     <Sheet titolo={id ? c.nome : "Nuovo contatto"}>
@@ -80,6 +87,7 @@ export function FormContatto({ id }: { id?: string }) {
             tipo: v.tipo as Contatto["tipo"],
             specialita: String(v.specialita),
             telefono: String(v.telefono).trim(),
+            email: String(v.email).trim(),
             orari: String(v.orari).trim(),
             sito: String(v.sito).trim(),
             note: String(v.note).trim(),

@@ -89,6 +89,7 @@ export interface Contatto {
   tipo: "medico" | "struttura";
   specialita: Specialita;
   telefono: string;
+  email: string;
   orari: string;
   sito: string;
   note: string;
