@@ -268,8 +268,37 @@ function cap(s: string): string {
 }
 
 /** Testo del messaggio WhatsApp del mattino. Null se non c'è niente da dire. */
+/**
+ * Cosa mandare come notifica oggi. La schermata "Oggi" mostra sempre tutto;
+ * la notifica invece avvisa solo nei giorni giusti, così non ripete ogni mattina le stesse cose:
+ * - visita/esame prenotato: 2 giorni prima, il giorno prima e il giorno stesso
+ * - ricetta che scade / esame da prenotare in tempo: 7 giorni prima, 2 giorni prima, il giorno stesso
+ *   (e poi una volta a settimana se è già passato)
+ * - farmaco che finisce: 7 giorni prima, 2 giorni prima e quando è finito
+ * - richiamare il CUP: il giorno stabilito (e i giorni dopo, finché non si richiama)
+ * - referto pronto: il giorno in cui si può ritirare (e poi ogni 3 giorni)
+ */
+export function avvisiDelGiorno(dati: Dati, g: string): Avviso[] {
+  return calcolaAvvisi(dati, g).filter((a) => {
+    const n = diffGiorni(g, a.giorno);
+    switch (a.categoria) {
+      case "visita":
+        return n >= 0 && n <= 2;
+      case "prenotare":
+      case "ricetta":
+        return n === 7 || n === 2 || n === 0 || (n < 0 && -n % 7 === 0);
+      case "farmaco":
+        return n === 7 || n === 2 || n <= 0;
+      case "richiamare":
+        return true;
+      case "ritiro":
+        return n === 0 || (n < 0 && -n % 3 === 0);
+    }
+  });
+}
+
 export function testoPromemoria(dati: Dati, g: string): string | null {
-  const avvisi = calcolaAvvisi(dati, g).filter((a) => a.livello !== "info" || a.categoria === "ritiro");
+  const avvisi = avvisiDelGiorno(dati, g);
   if (!avvisi.length) return null;
   const icona: Record<Categoria, string> = {
     visita: "📅",
@@ -293,7 +322,7 @@ export function testoPromemoria(dati: Dati, g: string): string | null {
 
 /** Titolo e testo della notifica del mattino. Null se non c'è niente da dire. */
 export function notificaPromemoria(dati: Dati, g: string): { titolo: string; testo: string } | null {
-  const avvisi = calcolaAvvisi(dati, g).filter((a) => a.livello !== "info" || a.categoria === "ritiro");
+  const avvisi = avvisiDelGiorno(dati, g);
   if (!avvisi.length) return null;
   const n = avvisi.length;
   const righe = avvisi.slice(0, 4).map((a) => "• " + a.titolo);

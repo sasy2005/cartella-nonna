@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4f1">
+<title>Come funziona la Cartella della Nonna</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+  /* Guida per la mamma: una colonna, testo grande, una foto per ogni passo. */
+  :root {
+    --bg: #f6f4f1; --surface: #ffffff; --fg: #1d1a1f; --muted: #6b6570; --line: #e4dfd8;
+    --accent: #7a2e6e; --accent-soft: #f4e5f0; --ok-soft: #e2f1e8;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141215; --surface: #1f1b21; --fg: #f1eef2; --muted: #a9a1ac; --line: #353037; --accent: #e3a6d6; --accent-soft: #3a2236; --ok-soft: #1c3226; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--fg); font: 18px/1.5 var(--font-body); }
+  main { max-width: 640px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) 60px max(18px, env(safe-area-inset-left, 0px)); }
+  h1, h2 { font-family: var(--font-display); line-height: 1.15; margin: 0; text-wrap: balance; }
+  h1 { font-size: 2rem; font-weight: 800; }
+  h2 { font-size: 1.35rem; font-weight: 800; display: flex; gap: 10px; align-items: baseline; }
+  h2 .n { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--bg); display: inline-grid; place-items: center; font-size: 1rem; transform: translateY(-2px); }
+  p { margin: 0; }
+  .torna { display: inline-block; margin-bottom: 18px; color: var(--accent); font-weight: 700; text-decoration: none; }
+  .intro { color: var(--muted); margin-top: 8px; }
+  section { background: var(--surface); border-radius: 20px; padding: 20px; margin-top: 18px; box-shadow: 0 1px 2px rgba(40,30,40,.05), 0 4px 14px rgba(40,30,40,.06); display: flex; flex-direction: column; gap: 12px; }
+  ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+  b.btn { background: var(--accent-soft); color: var(--accent); padding: 0 6px; border-radius: 6px; white-space: nowrap; }
+  figure { margin: 4px 0 0; }
+  figure img { display: block; width: 100%; max-width: 320px; margin: 0 auto; border-radius: 22px; border: 1px solid var(--line); }
+  figure img.alta { max-width: 260px; }
+  .consiglio { background: var(--ok-soft); border-radius: 14px; padding: 12px 14px; font-size: 0.95rem; }
+  footer { margin-top: 24px; text-align: center; color: var(--muted); font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<main>
+  <a class="torna" href="./">← Torna all'app</a>
+  <h1>Come funziona l'app</h1>
+  <p class="intro">Tutto quello che serve per la nonna in un posto solo: visite, ricette, farmaci e documenti. Le foto qui sotto hanno dati di esempio.</p>
+
+  <section>
+    <h2><span class="n">1</span>La schermata Oggi</h2>
+    <p>Appena apri l'app vedi <b>cosa c'è da fare</b>: visite dei prossimi giorni, cose da prenotare, farmaci che finiscono, referti da ritirare.</p>
+    <ul>
+      <li><b>Tocca una riga</b> per aprirla e fare la cosa giusta.</li>
+      <li>Le righe <b>rosse</b> sono urgenti, quelle <b>arancioni</b> da tenere d'occhio.</li>
+      <li>In fondo c'è il <b>calendario</b> del mese.</li>
+    </ul>
+    <figure><img src="./guida/1-oggi.jpg" alt="La schermata Oggi con l'elenco delle cose da fare" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Una ricetta nuova</h2>
+    <p>Premi <b class="btn">Fotografa una ricetta</b> e scegli:</p>
+    <ul>
+      <li><b>Da prenotare</b>: ricetta appena fatta dal medico.</li>
+      <li><b>Già prenotata</b>: poi fotografi anche il <b>foglio di prenotazione</b>.</li>
+      <li><b>Già fatta</b>: una vecchia, solo da tenere in archivio.</li>
+    </ul>
+    <p>Fai la foto <b>dall'alto, con buona luce</b>: l'app legge da sola codice, esame, priorità e scadenza. Tu controlli e premi <b class="btn">Salva</b>.</p>
+    <figure><img src="./guida/2-ricetta.jpg" alt="La scelta: da prenotare, già prenotata, già fatta" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Quando chiami il CUP</h2>
+    <p>Apri la ricetta e premi <b class="btn">Sto chiamando per prenotare</b>. Vedi in grande tutto quello che chiede l'operatore: codice della ricetta, codice fiscale, tessera, esenzioni.</p>
+    <ul>
+      <li>In rosso c'è <b>entro quando</b> va fatto: se ti danno una data dopo, è troppo tardi.</li>
+      <li>Tocca il numero del CUP per chiamare.</li>
+      <li>Alla fine premi <b class="btn">Prenotato!</b> e scrivi data, ora e dove. Se hai il foglio di prenotazione, fotografalo: compila tutto da solo.</li>
+      <li>Se non c'è posto premi <b class="btn">Niente posto</b> e scegli quando richiamare: quel giorno te lo ricordo.</li>
+    </ul>
+    <figure><img class="alta" src="./guida/3-chiamata.jpg" alt="La schermata Sto chiamando con i dati da dire al CUP" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Prima e dopo la visita</h2>
+    <p>Apri la visita per vedere <b>dove andare</b>, le <b>istruzioni</b> (es. digiuno) e <b>cosa portare</b>. Quello che manca è segnato in rosso.</p>
+    <ul>
+      <li>Tessera, impegnativa e documenti vecchi non sono scritti: li porti sempre.</li>
+      <li>Dopo la visita premi <b class="btn">Fatto!</b> e fotografa il referto: finisce in <b>Archivio</b>.</li>
+      <li>Se il medico chiede un nuovo controllo o degli esami, premi <b class="btn">Programma il prossimo controllo</b>.</li>
+    </ul>
+    <figure><img class="alta" src="./guida/4-visita.jpg" alt="La scheda di una visita con le cose da portare" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>I farmaci</h2>
+    <p>Per ogni farmaco l'app sa quante pillole prende la nonna e quante ce ne sono in casa, e ti dice <b>quando finiscono</b>.</p>
+    <ul>
+      <li>Quando compri una scatola: <b class="btn">Ho comprato</b>.</li>
+      <li>Se i conti non tornano, conta le pillole e premi <b class="btn">Correggi</b>.</li>
+      <li><b class="btn">Foglio delle pillole per la nonna</b>: una tabella da stampare con le pillole di colazione, pranzo, cena e sera.</li>
+    </ul>
+    <figure><img src="./guida/5-farmaci.jpg" alt="La schermata Farmaci con i giorni rimasti" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>Chiedere le ricette al medico</h2>
+    <p>Quando un farmaco sta per finire, tocca <b class="btn">Chiedi la ricetta al medico (email)</b>. L'email è già scritta con i farmaci e le dosi: controlla e premi <b class="btn">Apri l'email pronta</b>, poi Invia.</p>
+    <figure><img src="./guida/6-email.jpg" alt="L'email pronta per il medico di base" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">7</span>Il calendario</h2>
+    <p>I giorni con un <b>pallino</b> hanno una visita o un esame. Tocca il giorno per vedere cosa c'è. Utile per chiedere i permessi al lavoro.</p>
+    <figure><img src="./guida/7-calendario.jpg" alt="Il calendario del mese con i pallini sui giorni delle visite" loading="lazy"></figure>
+  </section>
+
+  <section>
+    <h2><span class="n">8</span>Le notifiche</h2>
+    <p>Alle <b>7 del mattino</b>, solo quando serve:</p>
+    <ul>
+      <li>visite: <b>2 giorni prima</b>, il giorno prima e la mattina stessa;</li>
+      <li>ricette che scadono e farmaci che finiscono: <b>7 giorni e 2 giorni prima</b>;</li>
+      <li>richiamare il CUP e referti pronti: il giorno stesso.</li>
+    </ul>
+    <p class="consiglio">Tocca la notifica per aprire l'app. Se un giorno non arriva niente, vuol dire che non c'è niente di nuovo.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">9</span>Il resto</h2>
+    <ul>
+      <li><b>Archivio</b>: referti e fogli di prenotazione, divisi per reparto. Puoi cercare per nome.</li>
+      <li><b>Rubrica</b>: il numero del CUP e il medico di base con la sua email.</li>
+      <li><b>Impostazioni</b> (la rotella in alto in Oggi): dati della nonna, notifiche, colori.</li>
+    </ul>
+    <p class="consiglio">Apri sempre l'app <b>dall'icona sul telefono</b>, così non ti chiede ogni volta la password.</p>
+  </section>
+
+  <footer>Se qualcosa non funziona o non si capisce, chiedi a Salvo.</footer>
+</main>
+</body>
+</html>

@@ -83,6 +83,10 @@ export function SchermataImpostazioni() {
 
   return (
     <Sheet titolo="Impostazioni">
+      <a className="card" href="./guida.html" style={{ textDecoration: "none", color: "inherit", fontWeight: 400 }}>
+        <b>Come funziona l'app</b>
+        <span className="small muted">Una guida breve con le foto, da leggere con calma</span>
+      </a>
       <button className="card" onClick={() => apri({ k: "profilo" })}>
         <b>Dati della nonna</b>
         <span className="small muted">{dati.profilo.nome || "Nome, codice fiscale, tessera, esenzioni"}</span>

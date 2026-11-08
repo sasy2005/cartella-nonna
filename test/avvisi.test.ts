@@ -80,7 +80,7 @@ test("avvisi: richiamare, prenotare, ritiro, farmaci, visita domani", () => {
   assert.ok(a.every((x, i) => i === 0 || ["urgente", "attenzione", "info"].indexOf(a[i - 1].livello) <= ["urgente", "attenzione", "info"].indexOf(x.livello)));
   const t = testoPromemoria(d, OGGI)!;
   assert.match(t, /Digiuno/);
-  assert.match(t, /Metformina/);
+  assert.doesNotMatch(t, /Metformina/); // finisce tra 4 giorni: avvisa a 7 e a 2, non oggi
   const n = notificaPromemoria(d, OGGI)!;
   assert.match(n.titolo, /^\d+ cose da fare per la nonna$/);
   assert.ok(n.testo.split("\n").length <= 5);

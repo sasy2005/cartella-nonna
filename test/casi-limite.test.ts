@@ -101,7 +101,7 @@ test("cosa portare: un referto scelto a mano non viene ripetuto tra i risultati"
 
 test("promemoria: molti avvisi vengono riassunti, ordine urgente → attenzione", () => {
   const g = "2026-11-08";
-  const tanti = Array.from({ length: 15 }, (_, i) => farmaco({ id: "m" + i, nome: "Farmaco " + i, momenti: { colazione: 1 }, scorta: i % 2 ? 3 : 9, scorta_al: g }));
+  const tanti = Array.from({ length: 15 }, (_, i) => farmaco({ id: "m" + i, nome: "Farmaco " + i, momenti: { colazione: 1 }, scorta: i % 2 ? 2 : 7, scorta_al: g }));
   const d = dati({ farmaci: tanti });
   const a = calcolaAvvisi(d, g);
   const primoAttenzione = a.findIndex((x) => x.livello === "attenzione");
@@ -120,4 +120,23 @@ test("cosa portare: le cose che si portano sempre non vengono ricordate", async 
     assert.ok(!eScontato(x), "non doveva essere scontato: " + x);
   const v = imp({ id: "v", tipo: "visita", portare: "Tessera sanitaria\nImpegnativa\nLista farmaci\nDocumentazione precedente" });
   assert.deepEqual(cosaPortare(v, { impegni: [v], documenti: [] }).map((p) => p.testo), ["Lista farmaci"]);
+});
+
+test("notifiche: solo nei giorni giusti (7, 2, 0 giorni prima)", async () => {
+  const { avvisiDelGiorno } = await import("../supabase/functions/_shared/avvisi.ts");
+  const ricetta = imp({ id: "r", scadenza_ricetta: "2026-12-01" });
+  const quando = (g: string) => avvisiDelGiorno(dati({ impegni: [ricetta] }), g).map((a) => a.id);
+  assert.deepEqual(quando("2026-11-24"), ["ricetta-r"]); // 7 giorni prima
+  assert.deepEqual(quando("2026-11-25"), []); // 6 giorni prima: niente notifica
+  assert.deepEqual(quando("2026-11-29"), ["ricetta-r"]); // 2 giorni prima
+  assert.deepEqual(quando("2026-11-30"), []);
+  assert.deepEqual(quando("2026-12-01"), ["ricetta-r"]); // il giorno stesso
+  assert.deepEqual(quando("2026-12-08"), ["ricetta-r"]); // scaduta da una settimana
+  const visita = imp({ id: "v", tipo: "visita", stato: "prenotato", data: "2026-12-10T09:00:00+01:00" });
+  const giorniVisita = ["2026-12-07", "2026-12-08", "2026-12-09", "2026-12-10"].map((g) => avvisiDelGiorno(dati({ impegni: [visita] }), g).length);
+  assert.deepEqual(giorniVisita, [0, 1, 1, 1]); // 2 giorni prima, il giorno prima, il giorno stesso
+  const f = (giorni: number) => farmaco({ id: "f", momenti: { colazione: 1 }, scorta: giorni, scorta_al: "2026-11-08" });
+  assert.deepEqual([10, 7, 5, 2, 1, 0].map((n) => avvisiDelGiorno(dati({ farmaci: [f(n)] }), "2026-11-08").length), [0, 1, 0, 1, 0, 1]);
+  // nella schermata Oggi invece si vede sempre
+  assert.equal(calcolaAvvisi(dati({ farmaci: [f(5)] }), "2026-11-08").length, 1);
 });

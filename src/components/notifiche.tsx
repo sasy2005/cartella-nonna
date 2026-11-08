@@ -105,7 +105,9 @@ export function CardNotifiche() {
         <h3>Notifiche su questo telefono</h3>
         {stato === "attive" && <span className="chip ok">Attive</span>}
       </div>
-      <p className="small muted">Ogni mattina verso le 7 arriva una notifica con le cose da fare. Se non c'è niente, non arriva niente.</p>
+      <p className="small muted">
+        Alle 7 del mattino, solo nei giorni giusti: visite 2 giorni prima, il giorno prima e il giorno stesso; ricette in scadenza e farmaci che finiscono 7 e 2 giorni prima; richiamate e referti pronti il giorno stesso. Se non c'è niente, non arriva niente.
+      </p>
       {backend.modalita === "cloud" && ultimo !== undefined && (
         <p className={"small " + (ultimo && Date.now() - new Date(ultimo.quando).getTime() > 36 * 3600 * 1000 ? "chip blocco warn" : "muted")}>
           {ultimo

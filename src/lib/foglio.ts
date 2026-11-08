@@ -36,6 +36,7 @@ export function daFoglio(l: LetturaPrenotazione, imp: Partial<Impegno>): Partial
   const daPortare = l.portare.filter((x) => !eScontato(x));
   if (daPortare.length) campi.portare = unisci(imp.portare, daPortare);
   const note = [
+    l.appunti_a_mano?.trim() && `Note a mano: ${l.appunti_a_mano.trim()}`,
     l.codice_prenotazione && `Codice prenotazione: ${l.codice_prenotazione}`,
     l.ticket && `Ticket: ${l.ticket}`,
     l.note_lettura && `Da controllare sul foglio: ${l.note_lettura}`,

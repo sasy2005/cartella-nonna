@@ -52,3 +52,8 @@ test("foglio con 4 date: la prima nella visita, le altre a parte, in ordine e se
   assert.deepEqual(altre, ["30/04/2027, 13:40:00", "23/07/2027, 13:30:00", "22/10/2027, 13:30:00"]);
   assert.deepEqual(altreDateDaFoglio(L({ data: "2027-01-22", ora: "13:40" })), []);
 });
+
+test("foglio: gli appunti scritti a mano vanno nelle note", () => {
+  const c = daFoglio(L({ appunti_a_mano: "LAVAGGIO PORT", codice_prenotazione: "260026102061" }), {});
+  assert.equal(c.note, "Note a mano: LAVAGGIO PORT\nCodice prenotazione: 260026102061");
+});

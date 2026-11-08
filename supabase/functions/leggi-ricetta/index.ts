@@ -49,7 +49,7 @@ Se la foto non è una ricetta, lascia vuoti i campi e spiegalo in note_lettura.`
 const SCHEMA_PRENOTAZIONE = {
   type: "object",
   additionalProperties: false,
-  required: ["data", "ora", "appuntamenti", "prestazione", "struttura", "indirizzo", "reparto", "preparazione", "portare", "codice_prenotazione", "ticket", "note_lettura"],
+  required: ["data", "ora", "appuntamenti", "prestazione", "struttura", "indirizzo", "reparto", "preparazione", "portare", "codice_prenotazione", "ticket", "appunti_a_mano", "note_lettura"],
   properties: {
     data: { type: "string" },
     ora: { type: "string" },
@@ -65,6 +65,7 @@ const SCHEMA_PRENOTAZIONE = {
     portare: { type: "array", items: { type: "string" } },
     codice_prenotazione: { type: "string" },
     ticket: { type: "string" },
+    appunti_a_mano: { type: "string" },
     note_lettura: { type: "string" },
   },
 };
@@ -83,6 +84,7 @@ Compila così:
 - portare: solo le richieste specifiche di quella visita, una voce per elemento (es. "Ultimo elettrocardiogramma", "Lista dei farmaci che prende", "Urine del mattino in contenitore sterile"). NON includere le cose che si portano sempre: tessera sanitaria, documento d'identità, impegnativa o ricetta, codice fiscale, documentazione o referti precedenti in generale. Lista vuota se non resta niente.
 - codice_prenotazione: il numero o codice della prenotazione, se c'è.
 - ticket: l'importo da pagare se indicato (es. "36,15 €"), oppure "esente" se scritto, altrimenti stringa vuota.
+- appunti_a_mano: tutto quello che è scritto a mano sul foglio (sono gli appunti della figlia: es. "lavaggio port", "portare la lista dei farmaci", un numero di telefono), trascritto com'è. Stringa vuota se non c'è niente scritto a mano.
 - note_lettura: cosa non hai potuto leggere con sicurezza. Stringa vuota se è tutto chiaro.
 Se la foto non è un foglio di prenotazione, lascia vuoti i campi e spiegalo in note_lettura.`;
 

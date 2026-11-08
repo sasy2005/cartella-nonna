@@ -385,3 +385,19 @@ a.btn, a.phone { font-weight: inherit; }
 a.phone { color: var(--fg); }
 a.btn.disabilitato { opacity: 0.5; pointer-events: none; }
 button.card.scelta-principale { box-shadow: var(--shadow), inset 0 0 0 2px var(--accent); }
+
+/* ---------- iPhone: niente pagina che scivola di lato ---------- */
+html, body { overflow-x: hidden; max-width: 100%; }
+@supports (overflow: clip) {
+  html, body { overflow-x: clip; }
+  .sheet, .full { overflow-x: clip; }
+}
+.sheet, .full { touch-action: pan-y; }
+/* i campi data/ora su iPhone sono più larghi dello schermo: li teniamo dentro */
+input[type="date"], input[type="datetime-local"], input[type="time"] {
+  -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; text-align: left;
+}
+input::-webkit-date-and-time-value { text-align: left; }
+input, select, textarea { max-width: 100%; }
+/* pulsanti affiancati: stessa altezza anche se uno va a capo */
+.row > button.grow, .row > a.btn.grow { align-self: stretch; }

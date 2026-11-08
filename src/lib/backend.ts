@@ -34,6 +34,7 @@ export interface LetturaPrenotazione {
   portare: string[];
   codice_prenotazione: string;
   ticket: string;
+  appunti_a_mano?: string;
   note_lettura: string;
 }
 

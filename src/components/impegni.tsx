@@ -496,7 +496,12 @@ export function FormImpegno({
           ? ["tipo", "titolo", "specialita", "stato", "dataFatto", "luogo", esame && "giorni_referto", "note"]
           : v.stato === "annullato"
             ? ["titolo", "stato", "note"]
-            : ["tipo", "titolo", "specialita", "stato", esame && "per_visita_id", esame && "giorni_referto", "entro", "nre", "priorita", "data_ricetta", "scadenza_ricetta", "prescrittore", "portare", "note"];
+            : [
+                "tipo", "titolo", "specialita", "stato", esame && "per_visita_id", esame && "giorni_referto",
+                // con una ricetta basta la sua scadenza; "entro" serve solo per i controlli senza ricetta
+                !v.nre && !v.scadenza_ricetta && !v.data_ricetta && "entro",
+                "nre", "priorita", "data_ricetta", "scadenza_ricetta", "prescrittore", "portare", "note",
+              ];
     return lista.filter((x): x is string => Boolean(x)).map((k) => C[k]);
   };
 
