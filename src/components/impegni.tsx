@@ -436,9 +436,21 @@ export function DettaglioImpegno({ id }: { id: string }) {
 
 /* ---------- Modulo ---------- */
 
-export function FormImpegno({ iniziale, titolo, documento }: { iniziale: Partial<Impegno>; titolo?: string; documento?: Partial<Documento> }) {
+export function FormImpegno({
+  iniziale,
+  titolo,
+  documento,
+  altreDate = [],
+}: {
+  iniziale: Partial<Impegno>;
+  titolo?: string;
+  documento?: Partial<Documento>;
+  altreDate?: string[];
+}) {
   const { dati, salva, chiudi, toast, sostituisci, pila } = useApp();
-  const imp = nuovoImpegno(iniziale);
+  const [imp] = useState(() => nuovoImpegno(iniziale));
+  /** Altre date con le stesse informazioni (es. un lavaggio ogni 3 mesi): diventano appuntamenti separati. */
+  const [altre, setAltre] = useState<string[]>(() => altreDate.map((d) => isoInput(d)));
   const esistente = dati.impegni.some((i) => i.id === imp.id);
   const g = oggi();
   const visite = dati.impegni.filter((v) => v.tipo === "visita" && v.stato !== "fatto" && v.stato !== "annullato" && v.id !== imp.id);
@@ -517,7 +529,16 @@ export function FormImpegno({ iniziale, titolo, documento }: { iniziale: Partial
     };
     if (!nuovo.titolo) return toast("Scrivi almeno cosa c'è da fare");
     if (nuovo.stato === "prenotato" && !nuovo.data) return toast("Inserisci data e ora della prenotazione");
+    const extra = nuovo.stato === "prenotato" ? altre.map((x) => inputIso(x)).filter((x): x is string => Boolean(x) && x !== nuovo.data) : [];
     await salva("impegni", nuovo);
+    for (const d of extra)
+      await salva("impegni", {
+        ...nuovo,
+        id: uuid(),
+        data: d,
+        documenti_da_portare: [],
+        note: [nuovo.note, `Stesso foglio di prenotazione dell'appuntamento del ${giornoBreve(giornoDi(nuovo.data!))}`].filter(Boolean).join("\n"),
+      });
     const prima = dati.impegni.find((i) => i.id === nuovo.id);
     if (prima?.stato === "da_prenotare" && nuovo.stato === "prenotato" && nuovo.data)
       await salva("chiamate", { id: uuid(), impegno_id: nuovo.id, contatto_id: null, quando: new Date().toISOString(), esito: `Prenotato per il ${giornoBreve(giornoDi(nuovo.data))} alle ${oraDi(nuovo.data)}`, richiamare_il: null });
@@ -528,7 +549,7 @@ export function FormImpegno({ iniziale, titolo, documento }: { iniziale: Partial
         titolo: "Foglio di prenotazione – " + nuovo.titolo,
         specialita: nuovo.specialita, impegno_id: nuovo.id,
       } as Documento);
-    toast("Salvato");
+    toast(extra.length ? `Salvati ${extra.length + 1} appuntamenti` : "Salvato");
     chiudi(pila[pila.length - 2]?.k === "chiamata" ? 2 : 1);
   };
 
@@ -539,6 +560,33 @@ export function FormImpegno({ iniziale, titolo, documento }: { iniziale: Partial
         <button className="mini" onClick={() => sostituisci({ k: "foglio", id: imp.id })}>
           Compila dal foglio di prenotazione (foto)
         </button>
+      )}
+      {(imp.stato === "prenotato" || altre.length > 0) && (
+        <div className="card">
+          <span className="eyebrow">{altre.length ? `Altre ${altre.length} date sullo stesso foglio` : "Ci sono altre date?"}</span>
+          <span className="small muted">
+            {altre.length
+              ? "Per ognuna creo un appuntamento uguale (stesso posto e istruzioni). Togli quelle sbagliate."
+              : "Se la stessa prestazione è prenotata più volte (es. ogni 3 mesi), aggiungi qui le altre date."}
+          </span>
+          {altre.map((d, i) => (
+            <div key={i} className="row" style={{ flexWrap: "nowrap" }}>
+              <input
+                type="datetime-local"
+                aria-label={`Data ${i + 2}`}
+                value={d}
+                onChange={(e) => setAltre((a) => a.map((x, j) => (j === i ? e.target.value : x)))}
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              <button className="ghost mini" aria-label="Togli questa data" onClick={() => setAltre((a) => a.filter((_, j) => j !== i))}>
+                ✕
+              </button>
+            </div>
+          ))}
+          <button className="mini" onClick={() => setAltre((a) => [...a, ""])}>
+            + Aggiungi un'altra data
+          </button>
+        </div>
       )}
       <Modulo campi={campi} iniziali={iniz} onSalva={salvaV} />
     </Sheet>

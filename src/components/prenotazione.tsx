@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { Documento, Impegno } from "../../supabase/functions/_shared/tipi.ts";
 import { oggi } from "../../supabase/functions/_shared/date.ts";
 import { blobBase64, comprimiImmagine, useApp } from "../lib/app.tsx";
-import { daFoglio } from "../lib/foglio.ts";
+import { altreDateDaFoglio, daFoglio } from "../lib/foglio.ts";
 import { uuid, type LetturaPrenotazione } from "../lib/backend.ts";
 import { Sheet } from "./ui.tsx";
 
@@ -11,6 +11,8 @@ export interface FoglioLetto {
   campi: Partial<Impegno>;
   /** La foto salvata, da mettere in archivio collegata alla visita. */
   documento: Partial<Documento>;
+  /** Altre date sullo stesso foglio (stessa prestazione ripetuta). */
+  altreDate: string[];
 }
 
 /** Pulsanti per fotografare il foglio + lettura. Chiama `fatto` con i campi letti e la foto. */
@@ -39,18 +41,20 @@ export function ScattaFoglio({ imp, fatto, salta }: { imp: Partial<Impegno>; fat
         file_tipo: "image/jpeg",
       };
       let campi: Partial<Impegno> = { stato: "prenotato" };
+      let altreDate: string[] = [];
       if (backend.modalita === "demo") toast("Foto salvata. In modalità prova compila i campi a mano.");
       else {
         try {
           const l = await backend.leggiPrenotazione(await blobBase64(img), "image/jpeg");
           campi = daFoglio(l, imp);
+          altreDate = altreDateDaFoglio(l);
           if (l.prestazione && !imp.titolo) documento.titolo = "Foglio di prenotazione – " + l.prestazione;
-          toast(campi.data ? "Foglio letto: controlla i dati" : "Non trovo la data sul foglio: inseriscila tu");
+          toast(!campi.data ? "Non trovo la data sul foglio: inseriscila tu" : altreDate.length ? `Foglio letto: ${altreDate.length + 1} appuntamenti` : "Foglio letto: controlla i dati");
         } catch (e) {
           toast("Non sono riuscito a leggerlo: " + (e as Error).message);
         }
       }
-      fatto({ campi, documento });
+      fatto({ campi, documento, altreDate });
     } catch (e) {
       toast("Foto non salvata: " + (e as Error).message);
     } finally {
@@ -97,8 +101,8 @@ export function SchermataFoglio({ id }: { id: string }) {
       </p>
       <ScattaFoglio
         imp={imp}
-        fatto={({ campi, documento }) =>
-          sostituisci({ k: "formImpegno", iniziale: { ...imp, ...campi }, titolo: "Controlla e salva", documento: { ...documento, impegno_id: imp.id } })
+        fatto={({ campi, documento, altreDate }) =>
+          sostituisci({ k: "formImpegno", iniziale: { ...imp, ...campi }, titolo: "Controlla e salva", documento: { ...documento, impegno_id: imp.id }, altreDate })
         }
       />
     </Sheet>

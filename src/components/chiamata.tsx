@@ -200,7 +200,7 @@ export function SchermataPrenotato({ impegnoId, contattoId }: { impegnoId: strin
       ) : (
         <ScattaFoglio
           imp={imp}
-          fatto={({ campi, documento }) => sostituisci({ k: "formImpegno", iniziale: { ...imp, ...campi }, titolo: "Controlla e salva · prenotato", documento })}
+          fatto={({ campi, documento, altreDate }) => sostituisci({ k: "formImpegno", iniziale: { ...imp, ...campi }, titolo: "Controlla e salva · prenotato", documento, altreDate })}
           salta={{ testo: "Annulla, scrivo a mano", azione: () => setFoglio(false) }}
         />
       )}

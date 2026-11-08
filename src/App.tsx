@@ -36,7 +36,7 @@ function leggiScheda(): Scheda {
 function Vista1({ v }: { v: Vista }) {
   switch (v.k) {
     case "impegno": return <DettaglioImpegno id={v.id} />;
-    case "formImpegno": return <FormImpegno iniziale={v.iniziale} titolo={v.titolo} documento={v.documento} />;
+    case "formImpegno": return <FormImpegno iniziale={v.iniziale} titolo={v.titolo} documento={v.documento} altreDate={v.altreDate} />;
     case "foglio": return <SchermataFoglio id={v.id} />;
     case "chiamata": return <SchermataChiamata id={v.id} />;
     case "esito": return <SchermataEsito impegnoId={v.impegnoId} contattoId={v.contattoId} />;

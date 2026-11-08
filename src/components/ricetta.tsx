@@ -109,12 +109,13 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
           </div>
           <ScattaFoglio
             imp={{ ...base, ...dallaRicetta }}
-            fatto={({ campi, documento }) =>
+            fatto={({ campi, documento, altreDate }) =>
               sostituisci({
                 k: "formImpegno",
                 iniziale: { ...base, ...dallaRicetta, ...campi, stato: "prenotato" },
                 titolo: "Controlla e salva · già prenotata",
                 documento,
+                altreDate,
               })
             }
             salta={{ testo: "Non ce l'ho: inserisco data e luogo a mano", azione: () => vaiAlModulo(dallaRicetta) }}
@@ -143,7 +144,7 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
             Scegli una foto già fatta
           </button>
           <button className="ghost" onClick={() => dopoRicetta({})}>
-            Compila a mano senza foto
+            {stato === "prenotato" ? "Non ho la ricetta: passo al foglio di prenotazione" : "Compila a mano senza foto"}
           </button>
         </div>
       )}

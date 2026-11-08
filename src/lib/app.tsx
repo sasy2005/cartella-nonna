@@ -6,7 +6,7 @@ import { salvaCacheDati } from "./memoria.ts";
 /** Le schermate che si aprono sopra le schede (una pila: "Indietro" torna alla precedente). */
 export type Vista =
   | { k: "impegno"; id: string }
-  | { k: "formImpegno"; iniziale: Partial<Impegno>; titolo?: string; documento?: Partial<Documento> }
+  | { k: "formImpegno"; iniziale: Partial<Impegno>; titolo?: string; documento?: Partial<Documento>; altreDate?: string[] }
   | { k: "chiamata"; id: string }
   | { k: "esito"; impegnoId: string; contattoId: string | null }
   | { k: "prenotato"; impegnoId: string; contattoId: string | null }

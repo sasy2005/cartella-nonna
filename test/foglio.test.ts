@@ -35,3 +35,20 @@ test("foglio: non copia tessera, impegnativa e documentazione precedente", () =>
   assert.equal(c.portare, "Ultimo ECG");
   assert.equal(daFoglio(L({ portare: ["Tessera sanitaria"] }), {}).portare, undefined);
 });
+
+test("foglio con 4 date: la prima nella visita, le altre a parte, in ordine e senza doppioni", async () => {
+  process.env.TZ = "Europe/Rome";
+  const { altreDateDaFoglio } = await import("../src/lib/foglio.ts");
+  const l = L({
+    data: "2027-01-22", ora: "13:40", prestazione: "Lavaggio del port",
+    appuntamenti: [
+      { data: "2027-04-30", ora: "13:40" }, { data: "2027-01-22", ora: "13:40" },
+      { data: "2027-10-22", ora: "13:30" }, { data: "2027-07-23", ora: "13:30" },
+    ],
+  });
+  const c = daFoglio(l, {});
+  assert.equal(new Date(c.data!).toLocaleString("it-IT", { timeZone: "Europe/Rome" }), "22/01/2027, 13:40:00");
+  const altre = altreDateDaFoglio(l).map((d) => new Date(d).toLocaleString("it-IT", { timeZone: "Europe/Rome" }));
+  assert.deepEqual(altre, ["30/04/2027, 13:40:00", "23/07/2027, 13:30:00", "22/10/2027, 13:30:00"]);
+  assert.deepEqual(altreDateDaFoglio(L({ data: "2027-01-22", ora: "13:40" })), []);
+});

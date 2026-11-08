@@ -25,6 +25,7 @@ export interface LetturaRicetta {
 export interface LetturaPrenotazione {
   data: string;
   ora: string;
+  appuntamenti?: { data: string; ora: string }[];
   prestazione: string;
   struttura: string;
   indirizzo: string;

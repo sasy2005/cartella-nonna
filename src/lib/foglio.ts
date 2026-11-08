@@ -10,12 +10,20 @@ const righe = (s: string | null | undefined) =>
     .filter(Boolean);
 
 /** Unisce quello che c'è scritto sul foglio di prenotazione con la visita. */
+/** Le date dopo la prima, quando il foglio ha più appuntamenti (es. un lavaggio ogni 3 mesi). */
+export function altreDateDaFoglio(l: LetturaPrenotazione): string[] {
+  const q = (data: string, ora: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(data) ? new Date(`${data}T${/^\d{1,2}:\d{2}$/.test(ora) ? ora.padStart(5, "0") : "08:00"}`).toISOString() : null;
+  const tutte = [...new Set([...(l.appuntamenti ?? []).map((a) => q(a.data, a.ora)), q(l.data, l.ora)].filter((x): x is string => Boolean(x)))].sort();
+  return tutte.slice(1);
+}
+
 export function daFoglio(l: LetturaPrenotazione, imp: Partial<Impegno>): Partial<Impegno> {
   const campi: Partial<Impegno> = {};
-  if (/^\d{4}-\d{2}-\d{2}$/.test(l.data)) {
-    const ora = /^\d{1,2}:\d{2}$/.test(l.ora) ? l.ora.padStart(5, "0") : "08:00";
-    campi.data = new Date(`${l.data}T${ora}`).toISOString();
-  }
+  const quando = (data: string, ora: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(data) ? new Date(`${data}T${/^\d{1,2}:\d{2}$/.test(ora) ? ora.padStart(5, "0") : "08:00"}`).toISOString() : null;
+  const tutte = [...new Set([...(l.appuntamenti ?? []).map((a) => quando(a.data, a.ora)), quando(l.data, l.ora)].filter((x): x is string => Boolean(x)))].sort();
+  if (tutte.length) campi.data = tutte[0];
   const dove = [l.struttura, l.reparto, l.indirizzo].map((x) => x.trim()).filter(Boolean).join(", ");
   if (dove) campi.luogo = dove;
   /** Aggiunge le voci nuove a quelle già scritte, senza doppioni (anche maiuscole/minuscole). */

@@ -49,10 +49,14 @@ Se la foto non è una ricetta, lascia vuoti i campi e spiegalo in note_lettura.`
 const SCHEMA_PRENOTAZIONE = {
   type: "object",
   additionalProperties: false,
-  required: ["data", "ora", "prestazione", "struttura", "indirizzo", "reparto", "preparazione", "portare", "codice_prenotazione", "ticket", "note_lettura"],
+  required: ["data", "ora", "appuntamenti", "prestazione", "struttura", "indirizzo", "reparto", "preparazione", "portare", "codice_prenotazione", "ticket", "note_lettura"],
   properties: {
     data: { type: "string" },
     ora: { type: "string" },
+    appuntamenti: {
+      type: "array",
+      items: { type: "object", additionalProperties: false, required: ["data", "ora"], properties: { data: { type: "string" }, ora: { type: "string" } } },
+    },
     prestazione: { type: "string" },
     struttura: { type: "string" },
     indirizzo: { type: "string" },
@@ -68,9 +72,10 @@ const SCHEMA_PRENOTAZIONE = {
 const ISTRUZIONI_PRENOTAZIONE = `Leggi la foto di un foglio di prenotazione di una visita o di un esame in Italia (stampato dal CUP, dall'ospedale, dal laboratorio o arrivato per email). Serve a una figlia che accompagna la madre anziana: i dati verranno controllati da lei, quindi preferisci un campo vuoto a un valore inventato.
 
 Compila così:
-- data: il giorno dell'appuntamento in formato AAAA-MM-GG (non la data di stampa né quella della ricetta).
+- data: il giorno del primo appuntamento in formato AAAA-MM-GG (non la data di stampa né quella della ricetta o della richiesta).
 - ora: l'orario dell'appuntamento in formato HH:MM (24 ore). Se c'è un orario di arrivo/accettazione diverso, usa quello dell'appuntamento e scrivi l'altro in preparazione.
-- prestazione: cosa si fa, breve e chiaro (es. "Visita cardiologica", "Ecografia addome completo").
+- appuntamenti: TUTTE le date e gli orari elencati sul foglio, in ordine, ognuno con data (AAAA-MM-GG) e ora (HH:MM). Alcuni fogli hanno più appuntamenti per la stessa prestazione (es. 4 date nell'anno): mettili tutti. Se ce n'è uno solo, la lista ha un elemento.
+- prestazione: cosa si fa, breve e chiaro per una persona non medica (es. "Visita cardiologica", "Ecografia addome completo", "Lavaggio del port"). Se sul foglio c'è una nota scritta a mano che dice cos'è (es. "LAVAGGIO PORT"), usa quella.
 - struttura: il nome dell'ospedale, poliambulatorio o laboratorio.
 - indirizzo: via, numero e città della sede.
 - reparto: dove andare dentro la struttura: padiglione, piano, ambulatorio, sportello (es. "Padiglione 3, piano 1, ambulatorio 12").
