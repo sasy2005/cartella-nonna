@@ -60,7 +60,7 @@ export function FormContatto({ id }: { id?: string }) {
   const [conferma, setConferma] = useState(false);
   const c: Contatto = dati.contatti.find((x) => x.id === id) ?? { id: uuid(), nome: "", tipo: "medico", specialita: "Medicina generale", telefono: "", orari: "", sito: "", note: "" };
   const campi: Campo[] = [
-    { k: "nome", l: "Nome" },
+    { k: "nome", l: "Nome", hint: "Es: Dott.ssa Bianchi (così il messaggio inizia con «Buongiorno Dott.ssa Bianchi»)" },
     { k: "tipo", l: "È un", tipo: "select", opzioni: [["medico", "Medico"], ["struttura", "Numero per prenotare (CUP, ospedale)"]] },
     { k: "specialita", l: "Reparto", tipo: "select", opzioni: SPECIALITA.map((s) => [s, s]) },
     { k: "telefono", l: "Telefono", tipo: "tel" },

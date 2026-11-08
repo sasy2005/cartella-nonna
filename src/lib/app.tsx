@@ -18,7 +18,7 @@ export type Vista =
   | { k: "formDocumento"; iniziale: Record<string, unknown> }
   | { k: "farmaco"; id?: string }
   | { k: "comprato"; id: string }
-  | { k: "messaggioMedico" }
+  | { k: "messaggioMedico"; ids?: string[] }
   | { k: "profilo" }
   | { k: "impostazioni" }
   | { k: "portare"; id: string }

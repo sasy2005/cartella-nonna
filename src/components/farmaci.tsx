@@ -81,6 +81,11 @@ export function SchermataFarmaci() {
                     </span>
                   </>
                 )}
+                {r !== null && r <= 15 && (
+                  <button className="mini" onClick={() => apri({ k: "messaggioMedico", ids: [f.id] })}>
+                    Chiedi la ricetta al medico
+                  </button>
+                )}
                 <div className="row">
                   <button className="grow primary mini" onClick={() => apri({ k: "comprato", id: f.id })}>
                     Ho comprato
@@ -302,36 +307,105 @@ export function StampaTerapia() {
   );
 }
 
-export function MessaggioMedico() {
-  const { dati, toast } = useApp();
+/** Bozza del messaggio al medico di base per chiedere le ricette dei farmaci che stanno finendo. */
+export function MessaggioMedico({ ids = [] }: { ids?: string[] }) {
+  const { dati, toast, apri } = useApp();
   const g = oggi();
-  const tutti = dati.farmaci.filter((f) => f.attivo);
-  const [scelti, setScelti] = useState<string[]>(tutti.filter((f) => (giorniRimasti(f, g) ?? 99) <= 15).map((f) => f.id));
+  const tutti = dati.farmaci.filter((f) => f.attivo).sort((a, b) => (giorniRimasti(a, g) ?? 999) - (giorniRimasti(b, g) ?? 999));
+  const [scelti, setScelti] = useState<string[]>(() => [...new Set([...ids, ...tutti.filter((f) => (giorniRimasti(f, g) ?? 99) <= 15).map((f) => f.id)])]);
   const medico = dati.contatti.find((c) => c.specialita === "Medicina generale" && c.tipo === "medico");
-  const nomi = tutti.filter((f) => scelti.includes(f.id)).map((f) => "- " + f.nome);
-  const testo = `Buongiorno, avrei bisogno delle ricette per ${dati.profilo.nome || "mia madre"}${dati.profilo.cf ? " (" + dati.profilo.cf + ")" : ""}:\n${nomi.join("\n")}\nGrazie mille!`;
+  const nonna = dati.profilo.nome || "mia madre";
+
+  const componi = (sel: string[]) => {
+    const righe = tutti
+      .filter((f) => sel.includes(f.id))
+      .map((f) => `- ${f.nome}${alGiorno(f) ? ` (${quantita(alGiorno(f))} al giorno)` : ""}`);
+    return [
+      `Buongiorno${medico ? " " + medico.nome : " dottore"},`,
+      `avrei bisogno delle ricette per ${nonna}${dati.profilo.cf ? ` (C.F. ${dati.profilo.cf})` : ""}:`,
+      ...righe,
+      "",
+      "Quando posso passare a ritirarle? Grazie mille, buona giornata.",
+    ].join("\n");
+  };
+  const [testo, setTesto] = useState(() => componi(scelti));
+  const [modificato, setModificato] = useState(false);
+  const scegli = (id: string, si: boolean) => {
+    const nuovi = si ? [...scelti, id] : scelti.filter((x) => x !== id);
+    setScelti(nuovi);
+    if (!modificato) setTesto(componi(nuovi));
+  };
+
   const tel = medico?.telefono.replace(/[^\d]/g, "") ?? "";
-  const wa = `https://wa.me/${tel ? (tel.startsWith("39") ? tel : "39" + tel) : ""}?text=${encodeURIComponent(testo)}`;
+  const telIntl = tel ? (tel.startsWith("39") ? tel : "39" + tel) : "";
+  const wa = `https://wa.me/${telIntl}?text=${encodeURIComponent(testo)}`;
+  const sms = `sms:${tel ? "+" + telIntl : ""}?&body=${encodeURIComponent(testo)}`;
+
   return (
-    <Sheet titolo="Messaggio per il medico">
+    <Sheet titolo="Messaggio per il medico di base">
       <div className="card">
-        {tutti.map((f) => (
-          <label key={f.id} className="check-label">
-            <input type="checkbox" checked={scelti.includes(f.id)} onChange={(e) => setScelti((s) => (e.target.checked ? [...s, f.id] : s.filter((x) => x !== f.id)))} />
-            <span>
-              {f.nome} <span className="hint">· {giorniRimasti(f, g) ?? "–"} giorni</span>
-            </span>
-          </label>
-        ))}
+        <span className="eyebrow">Farmaci da chiedere</span>
+        {tutti.map((f) => {
+          const r = giorniRimasti(f, g);
+          return (
+            <label key={f.id} className="check-label">
+              <input type="checkbox" checked={scelti.includes(f.id)} onChange={(e) => scegli(f.id, e.target.checked)} />
+              <span>
+                {f.nome}{" "}
+                <span className="hint" style={{ color: r !== null && r <= 5 ? "var(--crit)" : undefined }}>
+                  · {r === null ? "–" : r <= 0 ? "finito" : `${r} giorni`}
+                </span>
+              </span>
+            </label>
+          );
+        })}
       </div>
-      <div className="card" style={{ whiteSpace: "pre-wrap" }}>
-        {testo}
-      </div>
-      <a className="btn primary big" href={wa} target="_blank" rel="noreferrer">
-        Invia su WhatsApp{medico ? " a " + medico.nome : ""}
+      <label htmlFor="bozza">
+        Messaggio
+        <span className="hint">Puoi cambiarlo come vuoi prima di mandarlo</span>
+        <textarea
+          id="bozza"
+          value={testo}
+          onChange={(e) => {
+            setTesto(e.target.value);
+            setModificato(true);
+          }}
+          style={{ minHeight: 190 }}
+        />
+      </label>
+      {modificato && (
+        <button
+          className="ghost"
+          onClick={() => {
+            setTesto(componi(scelti));
+            setModificato(false);
+          }}
+        >
+          Rifai il messaggio dai farmaci scelti
+        </button>
+      )}
+      <a className={"btn primary big" + (scelti.length ? "" : " disabilitato")} href={wa} target="_blank" rel="noreferrer">
+        Manda su WhatsApp{medico ? " a " + medico.nome : ""}
       </a>
-      <button onClick={() => copia(testo, toast)}>Copia il testo</button>
-      {!medico && <p className="small muted">Aggiungi il medico di base nella Rubrica (reparto “Medicina generale”) per mandarglielo direttamente.</p>}
+      <div className="row">
+        <a className="btn grow" href={sms}>
+          Manda SMS
+        </a>
+        <button className="grow" onClick={() => copia(testo, toast)}>
+          Copia il testo
+        </button>
+      </div>
+      {!medico ? (
+        <div className="alert small">
+          Il medico di base non è in Rubrica: WhatsApp ti chiederà a chi mandarlo.
+          <button className="ghost" style={{ justifyContent: "flex-start", padding: 0 }} onClick={() => apri({ k: "contatto" })}>
+            Aggiungi il medico di base →
+          </button>
+        </div>
+      ) : (
+        !medico.telefono && <p className="small muted">Aggiungi il telefono di {medico.nome} in Rubrica per mandarglielo direttamente.</p>
+      )}
+      <p className="small muted">Quando ritiri le ricette e compri le scatole, premi “Ho comprato” sul farmaco.</p>
     </Sheet>
   );
 }

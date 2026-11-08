@@ -47,7 +47,7 @@ function Vista1({ v }: { v: Vista }) {
     case "formDocumento": return <FormDocumento iniziale={v.iniziale} />;
     case "farmaco": return <FormFarmaco id={v.id} />;
     case "comprato": return <FormComprato id={v.id} />;
-    case "messaggioMedico": return <MessaggioMedico />;
+    case "messaggioMedico": return <MessaggioMedico ids={v.ids} />;
     case "profilo": return <FormProfilo />;
     case "impostazioni": return <SchermataImpostazioni />;
     case "portare": return <SceltaDaPortare id={v.id} />;

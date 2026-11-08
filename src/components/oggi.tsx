@@ -31,7 +31,7 @@ export function SchermataOggi() {
 
   const tocca = (a: Avviso) => {
     if (a.impegno_id) apri({ k: a.categoria === "richiamare" || a.categoria === "prenotare" ? "chiamata" : "impegno", id: a.impegno_id });
-    else if (a.farmaco_id) apri({ k: "messaggioMedico" });
+    else if (a.farmaco_id) apri({ k: "messaggioMedico", ids: [a.farmaco_id] });
   };
 
   return (

@@ -383,3 +383,4 @@ h1 { letter-spacing: -0.01em; }
 a { color: var(--accent); font-weight: 700; text-underline-offset: 3px; }
 a.btn, a.phone { font-weight: inherit; }
 a.phone { color: var(--fg); }
+a.btn.disabilitato { opacity: 0.5; pointer-events: none; }
