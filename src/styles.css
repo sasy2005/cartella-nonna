@@ -281,7 +281,7 @@ table.terapia .istr { font-size: 0.95rem; color: var(--muted); margin-top: 2px; 
 .mese button.giorno.oggi { border-color: var(--accent); border-width: 2px; }
 .mese button.giorno[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .mese .punti { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
-.mese .punti i { width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--accent)); }
+.mese .punti i { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--accent)); }
 
 .banner-offline { background: var(--warn-soft); color: var(--fg); border-radius: var(--r); padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
 

@@ -561,11 +561,11 @@ export function SceltaDaPortare({ id }: { id: string }) {
 
 /* ---------- Calendario del mese ---------- */
 
-function Calendario({ spec }: { spec: string }) {
+export function Calendario({ spec = "Tutte", compatto = false }: { spec?: string; compatto?: boolean }) {
   const { dati } = useApp();
   const g = oggi();
   const [mese, setMese] = useState(g.slice(0, 7));
-  const [scelto, setScelto] = useState<string | null>(g);
+  const [scelto, setScelto] = useState<string | null>(compatto ? null : g);
   const appuntamenti = dati.impegni.filter((i) => i.data && i.stato !== "annullato" && (spec === "Tutte" || i.specialita === spec));
   const perGiorno = new Map<string, Impegno[]>();
   for (const i of appuntamenti) {
@@ -590,7 +590,7 @@ function Calendario({ spec }: { spec: string }) {
           ←
         </button>
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ textTransform: "capitalize" }}>{titolo}</h2>
+          {compatto ? <h3 style={{ textTransform: "capitalize" }}>{titolo}</h3> : <h2 style={{ textTransform: "capitalize" }}>{titolo}</h2>}
           <span className="small muted">
             {nelMese} {nelMese === 1 ? "appuntamento" : "appuntamenti"} in programma
           </span>
@@ -613,7 +613,7 @@ function Calendario({ spec }: { spec: string }) {
               className={"giorno" + (d.slice(0, 7) !== mese ? " fuori" : "") + (d === g ? " oggi" : "")}
               aria-pressed={scelto === d}
               aria-label={`${giornoEsteso(d)}${imp.length ? `, ${imp.length} appuntamenti` : ""}`}
-              onClick={() => setScelto(d)}
+              onClick={() => setScelto(compatto && scelto === d ? null : d)}
             >
               <span>{Number(d.slice(8))}</span>
               <span className="punti">

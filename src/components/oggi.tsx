@@ -1,9 +1,8 @@
 import { calcolaAvvisi, scadenzaDi, type Avviso } from "../../supabase/functions/_shared/avvisi.ts";
 import { giornoDi, giornoEsteso, oggi } from "../../supabase/functions/_shared/date.ts";
 import { useApp } from "../lib/app.tsx";
-import { ImpegnoCard } from "./impegni.tsx";
+import { Calendario, ImpegnoCard } from "./impegni.tsx";
 import { Vuoto } from "./ui.tsx";
-import { SezionePratiche } from "./pratiche.tsx";
 
 export function SchermataOggi() {
   const { dati, apri, backend, offline } = useApp();
@@ -90,14 +89,14 @@ export function SchermataOggi() {
       <section>
         <div className="row between">
           <h2>Prossimi appuntamenti</h2>
-          <a className="btn ghost" href="#calendario">
-            Calendario →
-          </a>
         </div>
         {prossimi.length ? prossimi.map((i) => <ImpegnoCard key={i.id} imp={i} />) : <Vuoto>Nessun appuntamento prenotato.</Vuoto>}
       </section>
 
-      <SezionePratiche />
+      <div className="card" style={{ marginTop: 22 }}>
+        <Calendario compatto />
+      </div>
+
     </>
   );
 }
