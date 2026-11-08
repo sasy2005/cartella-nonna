@@ -58,6 +58,7 @@ Nel repository su GitHub: **Settings → Secrets and variables → Actions**.
 | `SUPABASE_DB_PASSWORD` | la password del database |
 | `ANTHROPIC_API_KEY` | la chiave di Claude |
 | `CRON_SECRET` | una frase lunga inventata, senza spazi (es. `nonna-promemoria-8f3k29xq`) |
+| `BACKUP_PASSWORD` | la password che chiude i backup settimanali. **Segnatela in un posto sicuro**: senza, i backup non si aprono |
 
 Poi **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
@@ -91,9 +92,18 @@ Nell'app: **Oggi → Impostazioni → Notifiche su questo telefono → Attiva le
 - **Android**: funziona da Chrome o dall'app installata.
 - **iPhone**: prima aggiungi l'app alla schermata Home e aprila da lì, altrimenti iOS non permette le notifiche.
 
-Ogni mattina verso le 7 arriva una notifica con le cose da fare: visite di domani con la preparazione, cose da prenotare in scadenza, richiamate, referti da ritirare, farmaci che finiscono. Se non c'è niente da fare, non arriva niente.
+Ogni mattina alle 7 (lo decide l'orologio interno di Supabase, ora legale compresa) arriva una notifica con le cose da fare: visite di domani con la preparazione, cose da prenotare in scadenza, richiamate, referti da ritirare, farmaci che finiscono. Se non c'è niente da fare, non arriva niente.
 
 **WhatsApp (facoltativo).** Si può aggiungere anche un messaggio WhatsApp tramite il servizio gratuito CallMeBot (passi in Impostazioni). A novembre 2026 il loro bot era pieno ("This Bot is full"): riprovare più avanti.
+
+## 8. Backup settimanale
+
+Ogni domenica notte GitHub scarica da Supabase dati, foto e PDF, li chiude in un archivio **cifrato con `BACKUP_PASSWORD`** e lo conserva per 90 giorni.
+- Per vederli: repository → **Actions → Backup settimanale** → apri un'esecuzione → in fondo, **Artifacts**.
+- Per aprirne uno: scaricalo, estrai lo zip e apri il file `.7z` con 7-Zip (Windows) o Keka (Mac), usando la password. Dentro trovi `dati.json` e la cartella `foto`.
+- Per farne uno subito: **Actions → Backup settimanale → Run workflow**.
+
+Il repository è pubblico, ma l'archivio senza password è illeggibile e nei registri non compare nessun dato.
 
 ## 8. Primi dati da inserire (con la mamma)
 
@@ -109,9 +119,11 @@ Ogni mattina verso le 7 arriva una notifica con le cose da fare: visite di doman
 
 - **Il codice è pubblico, i dati no.** GitHub Pages gratis richiede un repository pubblico: si vede il codice dell'app, ma i dati della nonna stanno su Supabase, protetti da login e dalla lista `membri`.
 - **Dove passano i dati.** Le foto delle ricette vengono mandate a Claude (Anthropic) per leggerle. Le notifiche arrivano tramite il servizio push del telefono (Google o Apple), cifrate. Il WhatsApp facoltativo passa da CallMeBot, un servizio gratuito esterno: il testo contiene i nomi delle visite.
-- **Il promemoria del mattino si ferma dopo 60 giorni senza modifiche al codice.** È una regola di GitHub per i repository pubblici: ti arriva un'email e basta riattivarlo con un clic (Actions → Promemoria del mattino → Enable workflow).
+- **Ultimo promemoria.** In Impostazioni → Notifiche vedi quando è partito l'ultimo controllo. Se è vecchio di più di un giorno, la scritta diventa arancione: qualcosa non va, scrivimi.
+- **Il backup tiene attivo GitHub.** GitHub spegne i workflow programmati dopo 60 giorni senza modifiche: il backup ogni settimana scrive la data in `.github/ultimo-backup.txt`, così non succede.
 - **Supabase gratuito mette in pausa i progetti inattivi per una settimana.** La chiamata giornaliera per le notifiche lo tiene sveglio. Se si ferma, si riattiva dalla dashboard di Supabase.
-- **Copia di sicurezza:** Impostazioni → Scarica i dati. Supabase in più fa i suoi backup.
+- **Copia di sicurezza a mano:** Impostazioni → Scarica i dati (solo i dati, senza foto).
+- **Senza internet** (es. in ospedale) l'app mostra gli ultimi dati salvati sul telefono e le foto già aperte almeno una volta. Le modifiche si fanno quando torna la rete.
 
 ## Per sviluppare (facoltativo)
 
@@ -130,4 +142,5 @@ Per collegarla al tuo Supabase in locale copia `.env.example` in `.env.local` e 
 - `supabase/functions/leggi-ricetta`: legge la foto della ricetta con Claude.
 - `supabase/functions/promemoria`: manda il riepilogo su WhatsApp.
 - `supabase/migrations`: le tabelle e le regole di accesso.
-- `.github/workflows`: pubblicazione del sito, aggiornamento di Supabase, promemoria del mattino.
+- `supabase/functions/backup`: prepara il backup settimanale.
+- `.github/workflows`: pubblicazione del sito, aggiornamento di Supabase (attiva anche l'orologio dei promemoria), backup settimanale, invio manuale del promemoria.

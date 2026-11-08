@@ -1,9 +1,12 @@
 // Promemoria del mattino: notifica sul telefono (e WhatsApp tramite CallMeBot, se configurato).
-// - Ogni mattina: la chiama GitHub Actions con l'intestazione x-cron-secret (segreto CRON_SECRET).
-// - Dall'app: { chiave: true } per iscriversi alle notifiche, { prova: "notifica" | "whatsapp" } per una prova.
+// - Ogni ora la chiama l'orologio interno di Supabase ({ giro: "auto" }, intestazione x-cron-token):
+//   alle 7 italiane manda il riepilogo, una volta al giorno.
+// - GitHub Actions: { pianifica: true } dopo ogni aggiornamento (attiva l'orologio), oppure senza corpo
+//   per mandare subito il riepilogo (intestazione x-cron-secret).
+// - Dall'app: { chiave: true } per iscriversi, { prova: "notifica" | "whatsapp" }, { stato: true }.
 import { admin, caricaDati, cors, json, membroDa, type Membro } from "../_shared/server.ts";
 import { notificaPromemoria, testoPromemoria } from "../_shared/avvisi.ts";
-import { oggi } from "../_shared/date.ts";
+import { oggi, oraItaliana } from "../_shared/date.ts";
 import { chiaviVapid, inviaPush, type Iscrizione } from "../_shared/push.ts";
 
 async function inviaWhatsapp(m: Membro, testo: string): Promise<string | null> {
@@ -27,18 +30,46 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ errore: "Metodo non permesso" }, 405);
   const sb = admin();
   const segreto = Deno.env.get("CRON_SECRET");
-  const daCron = Boolean(segreto) && req.headers.get("x-cron-secret") === segreto;
-  let body: { chiave?: boolean; prova?: string } = {};
+  const daGithub = Boolean(segreto) && req.headers.get("x-cron-secret") === segreto;
+  let daOrologio = false;
+  const token = req.headers.get("x-cron-token");
+  if (token) {
+    const { data } = await sb.from("config_server").select("valore").eq("chiave", "cron_token").maybeSingle();
+    daOrologio = Boolean(data?.valore) && data!.valore === token;
+  }
+  const daCron = daGithub || daOrologio;
+  let body: { chiave?: boolean; prova?: string; stato?: boolean; pianifica?: boolean; giro?: string } = {};
   try {
     body = await req.json();
   } catch {
     /* corpo vuoto */
   }
 
+  // Attiva (o riattiva) l'orologio interno di Supabase.
+  if (body.pianifica && daGithub) {
+    const { data, error } = await sb.rpc("pianifica_promemoria", { base_url: Deno.env.get("SUPABASE_URL")! });
+    return error ? json({ errore: error.message }, 500) : json({ messaggio: data });
+  }
+
+  // Il giro automatico parte solo alle 7 italiane e una volta al giorno.
+  if (body.giro === "auto") {
+    if (!daOrologio) return json({ errore: "Non autorizzato" }, 401);
+    if (oraItaliana() !== 7) return json({ saltato: "non sono le 7" });
+    const { data } = await sb.from("config_server").select("valore").eq("chiave", "ultimo_mattino").maybeSingle();
+    if (data?.valore === oggi()) return json({ saltato: "già inviato oggi" });
+    await sb.from("config_server").upsert({ chiave: "ultimo_mattino", valore: oggi() });
+  }
+
   let membro: Membro | null = null;
   if (!daCron) {
     membro = await membroDa(req, sb);
     if (!membro) return json({ errore: "Non autorizzato" }, 401);
+  }
+
+  // Quando è partito l'ultimo riepilogo (lo mostra l'app in Impostazioni).
+  if (body.stato && membro) {
+    const { data } = await sb.from("config_server").select("valore").eq("chiave", "ultimo_giro").maybeSingle();
+    return json(data ? JSON.parse(data.valore) : {});
   }
 
   // Chiave pubblica per iscrivere un telefono alle notifiche.
@@ -86,7 +117,12 @@ Deno.serve(async (req) => {
   }
 
   /* ---------- Giro del mattino ---------- */
-  if (!notifica || !testo) return json({ inviati: 0, messaggio: "Niente da ricordare oggi" });
+  const registra = (esito: Record<string, unknown>) =>
+    sb.from("config_server").upsert({ chiave: "ultimo_giro", valore: JSON.stringify({ quando: new Date().toISOString(), ...esito }) });
+  if (!notifica || !testo) {
+    await registra({ notifiche: 0, whatsapp: 0, errori: [], niente: true });
+    return json({ inviati: 0, messaggio: "Niente da ricordare oggi" });
+  }
   const attivi = new Set(tutti.filter((m) => m.promemoria).map((m) => m.email.toLowerCase()));
   const { data: iscr } = await sb.from("notifiche_iscrizioni").select("*");
   const daAvvisare = ((iscr ?? []) as Iscrizione[]).filter((s) => attivi.has(s.email.toLowerCase()));
@@ -99,5 +135,6 @@ Deno.serve(async (req) => {
     if (err) errori.push(`${m.nome || m.email} (WhatsApp): ${err}`);
     else whatsapp++;
   }
+  await registra({ notifiche: push.inviati, whatsapp, errori, niente: false });
   return json({ notifiche: push.inviati, whatsapp, errori });
 });

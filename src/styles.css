@@ -260,3 +260,42 @@ textarea { min-height: 80px; resize: vertical; }
   .sheet { animation: su 0.18s ease-out; }
   @keyframes su { from { transform: translateY(30px); opacity: 0.6; } }
 }
+
+/* Foglio delle pillole: grande e leggibile, anche stampato */
+.foglio { display: flex; flex-direction: column; gap: 10px; }
+.foglio h1 { font-size: 2rem; }
+table.terapia { width: 100%; border-collapse: collapse; font-size: 1.15rem; }
+table.terapia th, table.terapia td { border: 2px solid var(--fg); padding: 10px 8px; text-align: left; vertical-align: middle; }
+table.terapia th { font-family: var(--font-display); background: var(--sunk); }
+table.terapia td.q { text-align: center; font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; width: 16%; }
+table.terapia .istr { font-size: 0.95rem; color: var(--muted); margin-top: 2px; }
+
+/* Calendario */
+.mese { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.mese .gs { text-align: center; font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.mese button.giorno {
+  min-height: 48px; padding: 4px 2px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
+  font-variant-numeric: tabular-nums; font-weight: 700; border: 1px solid var(--line); background: var(--surface);
+}
+.mese button.giorno.fuori { opacity: 0.35; }
+.mese button.giorno.oggi { border-color: var(--accent); border-width: 2px; }
+.mese button.giorno[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.mese .punti { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+.mese .punti i { width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--accent)); }
+
+.banner-offline { background: var(--warn-soft); color: var(--fg); border-radius: var(--r); padding: 10px 12px; font-size: 0.9rem; margin-top: 8px; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .tabs, main, .scrim, .toast, .no-print { display: none !important; }
+  .full.stampa { position: static; overflow: visible; background: #fff; }
+  .full.stampa .wrap { padding: 0; max-width: none; }
+  table.terapia th, table.terapia td { border-color: #000; color: #000; }
+  table.terapia th { background: #eee; }
+}
+@media screen and (max-width: 520px) {
+  table.terapia { font-size: 0.92rem; }
+  table.terapia th, table.terapia td { padding: 6px 4px; }
+  table.terapia th { font-size: 0.78rem; }
+  table.terapia td.q { font-size: 1.35rem; width: auto; }
+}

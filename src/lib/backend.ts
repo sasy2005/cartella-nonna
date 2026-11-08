@@ -2,9 +2,9 @@ import { createClient, type SupabaseClient, type Session } from "@supabase/supab
 import type { Dati, Profilo } from "../../supabase/functions/_shared/tipi.ts";
 import { PROFILO_VUOTO } from "../../supabase/functions/_shared/tipi.ts";
 import { datiDemo } from "./demo.ts";
-import { chiediMemoriaPersistente, memoriaLogin } from "./memoria.ts";
+import { chiediMemoriaPersistente, fileConCache, memoriaLogin } from "./memoria.ts";
 
-export type Tabella = "impegni" | "chiamate" | "contatti" | "documenti" | "farmaci";
+export type Tabella = "impegni" | "chiamate" | "contatti" | "documenti" | "farmaci" | "pratiche";
 
 export interface LetturaRicetta {
   tipo: "visita" | "esame";
@@ -47,7 +47,16 @@ export interface Backend {
   salvaIscrizione(s: PushSubscription): Promise<void>;
   rimuoviIscrizione(endpoint: string): Promise<void>;
   provaNotifica(): Promise<string>;
+  statoPromemoria(): Promise<StatoPromemoria | null>;
   esci(): Promise<void>;
+}
+
+export interface StatoPromemoria {
+  quando: string;
+  notifiche: number;
+  whatsapp: number;
+  errori: string[];
+  niente: boolean;
 }
 
 const URL_SB = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -97,13 +106,14 @@ function cloud(session: Session): Backend {
   return {
     modalita: "cloud",
     async carica() {
-      const [p, impegni, chiamate, contatti, documenti, farmaci] = await Promise.all([
+      const [p, impegni, chiamate, contatti, documenti, farmaci, pratiche] = await Promise.all([
         sb.from("profilo").select("dati").eq("id", 1).maybeSingle(),
         sb.from("impegni").select("*"),
         sb.from("chiamate").select("*"),
         sb.from("contatti").select("*").order("nome"),
         sb.from("documenti").select("*"),
         sb.from("farmaci").select("*").order("nome"),
+        sb.from("pratiche").select("*").order("created_at"),
       ]);
       const profilo = { ...PROFILO_VUOTO, ...((ok(p) as { dati?: Profilo } | null)?.dati ?? {}) };
       return {
@@ -117,6 +127,7 @@ function cloud(session: Session): Backend {
           per_giorno: Number(f.per_giorno),
           scorta: Number(f.scorta),
         })),
+        pratiche: ok(pratiche) ?? [],
       } as Dati;
     },
     async salva(tabella, riga) {
@@ -135,11 +146,15 @@ function cloud(session: Session): Backend {
     },
     async urlFile(path) {
       const c = urlCache.get(path);
-      if (c && c.scade > Date.now()) return c.url;
-      const r = await sb.storage.from("documenti").createSignedUrl(path, 3600);
-      if (r.error || !r.data) throw new Error(r.error?.message ?? "File non trovato");
-      urlCache.set(path, { url: r.data.signedUrl, scade: Date.now() + 50 * 60 * 1000 });
-      return r.data.signedUrl;
+      if (c) return c.url;
+      const blob = await fileConCache(path, async () => {
+        const r = await sb.storage.from("documenti").createSignedUrl(path, 3600);
+        if (r.error || !r.data) throw new Error(r.error?.message ?? "File non trovato");
+        return r.data.signedUrl;
+      });
+      const url = URL.createObjectURL(blob);
+      urlCache.set(path, { url, scade: Infinity });
+      return url;
     },
     async eliminaFile(path) {
       ok(await sb.storage.from("documenti").remove([path]));
@@ -179,6 +194,10 @@ function cloud(session: Session): Backend {
     async provaNotifica() {
       return (await invoca<{ messaggio: string }>("promemoria", { prova: "notifica" })).messaggio;
     },
+    async statoPromemoria() {
+      const r = await invoca<Partial<StatoPromemoria>>("promemoria", { stato: true });
+      return r.quando ? (r as StatoPromemoria) : null;
+    },
     async esci() {
       await sb.auth.signOut();
     },
@@ -197,7 +216,7 @@ export function backendDemo(): Backend {
   const leggi = (): Dati => {
     try {
       const s = localStorage.getItem(KEY_DEMO);
-      if (s) return JSON.parse(s);
+      if (s) return { pratiche: [], ...JSON.parse(s) };
     } catch {
       /* storage non disponibile */
     }
@@ -284,6 +303,9 @@ export function backendDemo(): Backend {
     async rimuoviIscrizione() {},
     async provaNotifica() {
       throw new Error("Le notifiche funzionano solo con l'app collegata a Supabase.");
+    },
+    async statoPromemoria() {
+      return null;
     },
     async esci() {
       try {

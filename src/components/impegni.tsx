@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PRIORITA, SPECIALITA, type Impegno } from "../../supabase/functions/_shared/tipi.ts";
-import { chiamateDi, ritiroDi, scadenzaDi } from "../../supabase/functions/_shared/avvisi.ts";
-import { aggiungiMesi, diffGiorni, giornoBreve, giornoDi, giornoEsteso, oggi, oraDi, relativo } from "../../supabase/functions/_shared/date.ts";
+import { COLORE_SPECIALITA, PRIORITA, SPECIALITA, type Impegno } from "../../supabase/functions/_shared/tipi.ts";
+import { chiamateDi, cosaPortare, ritiroDi, scadenzaDi } from "../../supabase/functions/_shared/avvisi.ts";
+import { aggiungiGiorni, aggiungiMesi, diffGiorni, giornoBreve, giornoDi, giornoEsteso, giornoSettimana, oggi, oraDi, relativo } from "../../supabase/functions/_shared/date.ts";
 import { inputIso, isoInput, righe, useApp } from "../lib/app.tsx";
 import { uuid } from "../lib/backend.ts";
 import { FileSalvato, Modulo, Sheet, SpecChip, StatoChip, TipoChip, Vuoto, type Campo, type Valori } from "./ui.tsx";
@@ -29,6 +29,7 @@ export function nuovoImpegno(p: Partial<Impegno> = {}): Impegno {
     prescrittore: "",
     ricetta_path: null,
     note: "",
+    documenti_da_portare: [],
     ...p,
   };
 }
@@ -123,16 +124,17 @@ export function ImpegnoCard({ imp }: { imp: Impegno }) {
 
 /* ---------- Scheda Impegni ---------- */
 
-type Filtro = "da_prenotare" | "prenotato" | "ritirare" | "fatto";
+export type Filtro = "calendario" | "da_prenotare" | "prenotato" | "ritirare" | "fatto";
 
-export function SchermataImpegni() {
+export function SchermataImpegni({ inizio = "da_prenotare" }: { inizio?: Filtro }) {
   const { dati, apri } = useApp();
-  const [filtro, setFiltro] = useState<Filtro>("da_prenotare");
+  const [filtro, setFiltro] = useState<Filtro>(inizio);
   const [spec, setSpec] = useState("Tutte");
   const g = oggi();
 
   const conta = (f: Filtro) => dati.impegni.filter((i) => passa(i, f)).length;
   function passa(i: Impegno, f: Filtro) {
+    if (f === "calendario") return false;
     if (f === "ritirare") return ritiroDi(i) !== null;
     if (f === "fatto") return i.stato === "fatto" || i.stato === "annullato";
     return i.stato === f;
@@ -156,6 +158,7 @@ export function SchermataImpegni() {
         <div className="filters" role="tablist">
           {(
             [
+              ["calendario", "Calendario"],
               ["da_prenotare", "Da prenotare"],
               ["prenotato", "In programma"],
               ["ritirare", "Referti da ritirare"],
@@ -163,7 +166,8 @@ export function SchermataImpegni() {
             ] as [Filtro, string][]
           ).map(([f, l]) => (
             <button key={f} aria-pressed={filtro === f} onClick={() => setFiltro(f)}>
-              {l} ({conta(f)})
+              {l}
+              {f !== "calendario" && ` (${conta(f)})`}
             </button>
           ))}
         </div>
@@ -175,6 +179,9 @@ export function SchermataImpegni() {
           ))}
         </div>
       </section>
+      {filtro === "calendario" ? (
+        <Calendario spec={spec} />
+      ) : (
       <section>
         {lista.length ? (
           lista.map((i) => <ImpegnoCard key={i.id} imp={i} />)
@@ -192,6 +199,7 @@ export function SchermataImpegni() {
         </button>
         {filtro === "fatto" && lista.length > 0 && <p className="small muted">Ordinati dal più recente. Oggi è {giornoEsteso(g)}.</p>}
       </section>
+      )}
     </>
   );
 }
@@ -215,7 +223,7 @@ export function DettaglioImpegno({ id }: { id: string }) {
   const contatto = dati.contatti.find((c) => c.id === imp.contatto_id);
   const docs = dati.documenti.filter((d) => d.impegno_id === imp.id);
   const prep = righe(imp.preparazione);
-  const port = righe(imp.portare);
+  const port = cosaPortare(imp, dati);
   const rit = ritiroDi(imp);
   const nomeC = (cid: string | null) => dati.contatti.find((c) => c.id === cid)?.nome;
 
@@ -282,10 +290,41 @@ export function DettaglioImpegno({ id }: { id: string }) {
           <ul className="check">{prep.map((x) => <li key={x}>{x}</li>)}</ul>
         </div>
       )}
-      {port.length > 0 && (
+      {(imp.tipo === "visita" || port.length > 0) && imp.stato !== "fatto" && (
         <div className="card">
           <span className="eyebrow">Da portare</span>
-          <ul className="check">{port.map((x) => <li key={x}>{x}</li>)}</ul>
+          {port.length ? (
+            <div className="stack" style={{ gap: 6 }}>
+              {port.map((x, i) => (
+                <div key={i} className="row" style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>
+                  {x.fonte === "nota" ? (
+                    <span className="chip" aria-hidden="true">•</span>
+                  ) : (
+                    <span className={"chip " + (x.pronto ? "ok" : "crit")} aria-label={x.pronto ? "in archivio" : "manca"}>
+                      {x.pronto ? "✓" : "manca"}
+                    </span>
+                  )}
+                  {x.documento_id ? (
+                    <button className="ghost" style={{ padding: 0, minHeight: 0, textAlign: "left", justifyContent: "flex-start" }} onClick={() => apri({ k: "documento", id: x.documento_id! })}>
+                      {x.testo} →
+                    </button>
+                  ) : (
+                    <span>{x.testo}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="small muted">Se ti hanno chiesto di portare referti o risultati, aggiungili qui: te li ricordo prima della visita.</span>
+          )}
+          <div className="row">
+            <button className="grow mini" onClick={() => apri({ k: "portare", id: imp.id })}>
+              Scegli dall'archivio
+            </button>
+            <button className="grow mini" onClick={() => apri({ k: "formImpegno", iniziale: imp, titolo: "Modifica" })}>
+              Scrivi cosa portare
+            </button>
+          </div>
         </div>
       )}
 
@@ -422,7 +461,7 @@ export function FormImpegno({ iniziale, titolo }: { iniziale: Partial<Impegno>; 
     { k: "giorni_referto", l: "Dopo quanti giorni è pronto il referto", tipo: "number", hint: "0 se lo danno subito", rapidi: [{ l: "Subito", v: "0" }, { l: "3 giorni", v: "3" }, { l: "1 settimana", v: "7" }, { l: "2 settimane", v: "14" }] },
     { k: "entro", l: "Da fare entro", tipo: "date", hint: "Se c'è una data limite (es. controllo tra 6 mesi)", rapidi: [{ l: "1 mese", v: aggiungiMesi(g, 1) }, { l: "3 mesi", v: aggiungiMesi(g, 3) }, { l: "6 mesi", v: aggiungiMesi(g, 6) }, { l: "1 anno", v: aggiungiMesi(g, 12) }] },
     { k: "preparazione", l: "Istruzioni prima", tipo: "textarea", hint: "Una per riga. Es: Digiuno dalla mezzanotte" },
-    { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Una per riga" },
+    { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Una per riga. Es: Esami del sangue di settembre, Lista farmaci. I referti in archivio li scegli dalla scheda della visita." },
     { k: "nre", l: "Codice ricetta (NRE)", hint: "In alto sulla ricetta, sotto il codice a barre" },
     { k: "priorita", l: "Priorità sulla ricetta", tipo: "select", opzioni: [["", "—"], ...(Object.entries(PRIORITA) as [string, string][]).map(([k, v]) => [k, `${k} · ${v}`] as [string, string])] },
     { k: "data_ricetta", l: "Data della ricetta", tipo: "date" },
@@ -470,5 +509,128 @@ export function FormImpegno({ iniziale, titolo }: { iniziale: Partial<Impegno>; 
     <Sheet titolo={titolo ?? (esistente ? "Modifica" : "Nuova visita o esame")}>
       <Modulo campi={campi} iniziali={iniz} onSalva={salvaV} />
     </Sheet>
+  );
+}
+
+/* ---------- Scegli dall'archivio cosa portare ---------- */
+
+export function SceltaDaPortare({ id }: { id: string }) {
+  const { dati, salva, chiudi, toast } = useApp();
+  const imp = dati.impegni.find((i) => i.id === id);
+  const [scelti, setScelti] = useState<string[]>(imp?.documenti_da_portare ?? []);
+  const [tutti, setTutti] = useState(false);
+  if (!imp) return null;
+  const docs = dati.documenti
+    .filter((d) => tutti || d.specialita === imp.specialita || d.tipo === "Esami" || d.specialita === "Laboratorio analisi" || scelti.includes(d.id))
+    .sort((a, b) => b.data.localeCompare(a.data));
+  return (
+    <Sheet titolo="Cosa portare dall'archivio">
+      <p className="small muted">Spunta i referti da portare a: {imp.titolo}. Te li ricordo nel promemoria e li ritrovi nella scheda della visita.</p>
+      <div className="card">
+        {docs.length ? (
+          docs.map((d) => (
+            <label key={d.id} className="check-label">
+              <input type="checkbox" checked={scelti.includes(d.id)} onChange={(e) => setScelti((s) => (e.target.checked ? [...s, d.id] : s.filter((x) => x !== d.id)))} />
+              <span>
+                {d.titolo} <span className="hint">· {d.specialita} · {giornoBreve(d.data)}</span>
+              </span>
+            </label>
+          ))
+        ) : (
+          <span className="muted">Nessun documento in archivio{tutti ? "" : " per questo reparto"}.</span>
+        )}
+      </div>
+      {!tutti && (
+        <button className="ghost" onClick={() => setTutti(true)}>
+          Mostra tutto l'archivio
+        </button>
+      )}
+      <button
+        className="primary big"
+        onClick={async () => {
+          await salva("impegni", { ...imp, documenti_da_portare: scelti });
+          toast("Salvato");
+          chiudi();
+        }}
+      >
+        Salva
+      </button>
+    </Sheet>
+  );
+}
+
+/* ---------- Calendario del mese ---------- */
+
+function Calendario({ spec }: { spec: string }) {
+  const { dati } = useApp();
+  const g = oggi();
+  const [mese, setMese] = useState(g.slice(0, 7));
+  const [scelto, setScelto] = useState<string | null>(g);
+  const appuntamenti = dati.impegni.filter((i) => i.data && i.stato !== "annullato" && (spec === "Tutte" || i.specialita === spec));
+  const perGiorno = new Map<string, Impegno[]>();
+  for (const i of appuntamenti) {
+    const k = giornoDi(i.data!);
+    perGiorno.set(k, [...(perGiorno.get(k) ?? []), i]);
+  }
+  const primo = mese + "-01";
+  const inizio = aggiungiGiorni(primo, 1 - giornoSettimana(primo));
+  const giorni = Array.from({ length: 42 }, (_, i) => aggiungiGiorni(inizio, i));
+  const settimane = giorni[35].slice(0, 7) === mese ? 6 : 5;
+  const titolo = new Intl.DateTimeFormat("it-IT", { timeZone: "UTC", month: "long", year: "numeric" }).format(new Date(primo + "T12:00:00Z"));
+  const delGiorno = scelto ? (perGiorno.get(scelto) ?? []).sort((a, b) => a.data!.localeCompare(b.data!)) : [];
+  const nelMese = appuntamenti.filter((i) => giornoDi(i.data!).startsWith(mese) && i.stato === "prenotato").length;
+  const cambia = (n: number) => {
+    setMese(aggiungiMesi(primo, n).slice(0, 7));
+    setScelto(null);
+  };
+  return (
+    <section>
+      <div className="row between">
+        <button className="mini" onClick={() => cambia(-1)} aria-label="Mese precedente">
+          ←
+        </button>
+        <div style={{ textAlign: "center" }}>
+          <h2 style={{ textTransform: "capitalize" }}>{titolo}</h2>
+          <span className="small muted">
+            {nelMese} {nelMese === 1 ? "appuntamento" : "appuntamenti"} in programma
+          </span>
+        </div>
+        <button className="mini" onClick={() => cambia(1)} aria-label="Mese successivo">
+          →
+        </button>
+      </div>
+      <div className="mese">
+        {["lun", "mar", "mer", "gio", "ven", "sab", "dom"].map((d) => (
+          <span key={d} className="gs">
+            {d}
+          </span>
+        ))}
+        {giorni.slice(0, settimane * 7).map((d) => {
+          const imp = perGiorno.get(d) ?? [];
+          return (
+            <button
+              key={d}
+              className={"giorno" + (d.slice(0, 7) !== mese ? " fuori" : "") + (d === g ? " oggi" : "")}
+              aria-pressed={scelto === d}
+              aria-label={`${giornoEsteso(d)}${imp.length ? `, ${imp.length} appuntamenti` : ""}`}
+              onClick={() => setScelto(d)}
+            >
+              <span>{Number(d.slice(8))}</span>
+              <span className="punti">
+                {imp.slice(0, 3).map((i) => (
+                  <i key={i.id} style={{ ["--c" as string]: COLORE_SPECIALITA[i.specialita] ?? COLORE_SPECIALITA.Altro }} />
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {scelto && (
+        <>
+          <h3 style={{ textTransform: "capitalize" }}>{giornoEsteso(scelto)}</h3>
+          {delGiorno.length ? delGiorno.map((i) => <ImpegnoCard key={i.id} imp={i} />) : <Vuoto>Nessun appuntamento in questo giorno.</Vuoto>}
+        </>
+      )}
+    </section>
   );
 }

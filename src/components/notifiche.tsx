@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../lib/app.tsx";
+import type { StatoPromemoria } from "../lib/backend.ts";
 
 type Stato = "carico" | "non-supportato" | "ios-home" | "negato" | "attive" | "spente";
 
@@ -26,6 +27,11 @@ export function CardNotifiche() {
   const { backend, toast } = useApp();
   const [stato, setStato] = useState<Stato>("carico");
   const [lavoro, setLavoro] = useState(false);
+  const [ultimo, setUltimo] = useState<StatoPromemoria | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (backend.modalita === "cloud") backend.statoPromemoria().then(setUltimo).catch(() => setUltimo(null));
+  }, [backend]);
 
   useEffect(() => {
     (async () => {
@@ -100,6 +106,15 @@ export function CardNotifiche() {
         {stato === "attive" && <span className="chip ok">Attive</span>}
       </div>
       <p className="small muted">Ogni mattina verso le 7 arriva una notifica con le cose da fare. Se non c'è niente, non arriva niente.</p>
+      {backend.modalita === "cloud" && ultimo !== undefined && (
+        <p className={"small " + (ultimo && Date.now() - new Date(ultimo.quando).getTime() > 36 * 3600 * 1000 ? "chip warn" : "muted")} style={{ whiteSpace: "normal" }}>
+          {ultimo
+            ? `Ultimo controllo: ${new Date(ultimo.quando).toLocaleString("it-IT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${
+                ultimo.niente ? "niente da ricordare" : `${ultimo.notifiche} ${ultimo.notifiche === 1 ? "notifica inviata" : "notifiche inviate"}`
+              }${ultimo.errori?.length ? ` · ${ultimo.errori.length} problemi` : ""}`
+            : "Il primo riepilogo partirà domattina alle 7."}
+        </p>
+      )}
       {backend.modalita === "demo" ? (
         <p className="small muted">Funzionano quando l'app è collegata a Supabase.</p>
       ) : stato === "carico" ? (

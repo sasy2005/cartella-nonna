@@ -31,3 +31,10 @@ jobs:
             CRON_SECRET="${{ secrets.CRON_SECRET }}"
       - name: Funzioni
         run: supabase functions deploy --use-api --yes
+      - name: Attiva l'orologio dei promemoria
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://$PROJECT_REF.supabase.co/functions/v1/promemoria" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d '{"pianifica":true}'

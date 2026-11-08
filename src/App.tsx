@@ -6,10 +6,12 @@ import { oggi } from "../supabase/functions/_shared/date.ts";
 import { AppProvider, useApp, type Vista } from "./lib/app.tsx";
 import { CLOUD, backendCloud, backendDemo, supabase, type Backend } from "./lib/backend.ts";
 import { SchermataOggi } from "./components/oggi.tsx";
-import { DettaglioImpegno, FormImpegno, SchermataImpegni } from "./components/impegni.tsx";
+import { DettaglioImpegno, FormImpegno, SceltaDaPortare, SchermataImpegni, type Filtro } from "./components/impegni.tsx";
 import { SchermataChiamata, SchermataEsito, SchermataFatto, SchermataPrenotato, SchermataProssimo } from "./components/chiamata.tsx";
 import { SchermataRicetta } from "./components/ricetta.tsx";
-import { FormComprato, FormFarmaco, MessaggioMedico, SchermataFarmaci } from "./components/farmaci.tsx";
+import { FormComprato, FormCorreggiScorta, FormFarmaco, MessaggioMedico, SchermataFarmaci, StampaTerapia } from "./components/farmaci.tsx";
+import { SchedaPratica } from "./components/pratiche.tsx";
+import { leggiCacheDati, memoriaLogin } from "./lib/memoria.ts";
 import { FormContatto, SchermataRubrica } from "./components/rubrica.tsx";
 import { DettaglioDocumento, FormDocumento, SchermataArchivio } from "./components/archivio.tsx";
 import { FormProfilo, SchermataImpostazioni } from "./components/impostazioni.tsx";
@@ -25,8 +27,9 @@ const SCHEDE: [Scheda, string][] = [
 ];
 
 function leggiScheda(): Scheda {
-  const h = location.hash.slice(1) as Scheda;
-  return SCHEDE.some(([k]) => k === h) ? h : "oggi";
+  const h = location.hash.slice(1);
+  if (h === "calendario") return "impegni";
+  return SCHEDE.some(([k]) => k === h) ? (h as Scheda) : "oggi";
 }
 
 function Vista1({ v }: { v: Vista }) {
@@ -47,14 +50,22 @@ function Vista1({ v }: { v: Vista }) {
     case "messaggioMedico": return <MessaggioMedico />;
     case "profilo": return <FormProfilo />;
     case "impostazioni": return <SchermataImpostazioni />;
+    case "portare": return <SceltaDaPortare id={v.id} />;
+    case "correggiScorta": return <FormCorreggiScorta id={v.id} />;
+    case "stampaTerapia": return <StampaTerapia />;
+    case "pratica": return <SchedaPratica id={v.id} />;
   }
 }
 
 function Guscio() {
   const { dati, pila } = useApp();
   const [scheda, setScheda] = useState<Scheda>(leggiScheda);
+  const [inizioVisite, setInizioVisite] = useState<{ f: Filtro; n: number }>({ f: location.hash === "#calendario" ? "calendario" : "da_prenotare", n: 0 });
   useEffect(() => {
-    const f = () => setScheda(leggiScheda());
+    const f = () => {
+      setScheda(leggiScheda());
+      if (location.hash === "#calendario") setInizioVisite((x) => ({ f: "calendario", n: x.n + 1 }));
+    };
     window.addEventListener("hashchange", f);
     return () => window.removeEventListener("hashchange", f);
   }, []);
@@ -63,6 +74,7 @@ function Guscio() {
   const cima = pila[pila.length - 1];
   const vai = (s: Scheda) => {
     history.replaceState(null, "", "#" + s);
+    if (s === "impegni") setInizioVisite((x) => ({ f: "da_prenotare", n: x.n + 1 }));
     setScheda(s);
     window.scrollTo(0, 0);
   };
@@ -70,7 +82,7 @@ function Guscio() {
     <>
       <main className="wrap" aria-hidden={cima?.k === "chiamata" ? true : undefined}>
         {scheda === "oggi" && <SchermataOggi />}
-        {scheda === "impegni" && <SchermataImpegni />}
+        {scheda === "impegni" && <SchermataImpegni key={inizioVisite.n} inizio={inizioVisite.f} />}
         {scheda === "farmaci" && <SchermataFarmaci />}
         {scheda === "rubrica" && <SchermataRubrica />}
         {scheda === "archivio" && <SchermataArchivio />}
@@ -156,13 +168,25 @@ function Caricamento({ testo }: { testo: string }) {
 
 export function App() {
   const [sessione, setSessione] = useState<Session | null | undefined>(CLOUD ? undefined : null);
-  const [stato, setStato] = useState<{ backend: Backend; dati: Dati } | null>(null);
+  const [stato, setStato] = useState<{ backend: Backend; dati: Dati; offlineDal?: string } | null>(null);
   const [errore, setErrore] = useState("");
 
   useEffect(() => {
     if (!CLOUD) return;
     const sb = supabase();
-    sb.auth.getSession().then(({ data }) => setSessione(data.session));
+    sb.auth.getSession().then(async ({ data }) => {
+      if (data.session) return setSessione(data.session);
+      // Senza internet il login non si può rinnovare: si usa quello salvato, in sola lettura.
+      if (!navigator.onLine) {
+        try {
+          const salvata = JSON.parse((await memoriaLogin.getItem("cartella-nonna-login")) ?? "null");
+          if (salvata?.user) return setSessione(salvata as Session);
+        } catch {
+          /* niente */
+        }
+      }
+      setSessione(null);
+    });
     const { data } = sb.auth.onAuthStateChange((_e, s) => setSessione(s));
     return () => data.subscription.unsubscribe();
   }, []);
@@ -173,7 +197,11 @@ export function App() {
     const b = CLOUD ? backendCloud(sessione!) : backendDemo();
     b.carica()
       .then((dati) => setStato({ backend: b, dati }))
-      .catch((e) => setErrore((e as Error).message));
+      .catch(async (e) => {
+        const copia = CLOUD ? await leggiCacheDati<Dati>() : null;
+        if (copia) setStato({ backend: b, dati: { ...copia.dati, pratiche: copia.dati.pratiche ?? [] }, offlineDal: copia.quando });
+        else setErrore((e as Error).message);
+      });
     // ricarica solo quando cambia l'utente, non a ogni rinnovo del token
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [utente]);
@@ -192,7 +220,7 @@ export function App() {
     );
   if (!stato) return <Caricamento testo="Carico i dati…" />;
   return (
-    <AppProvider backend={stato.backend} iniziali={stato.dati}>
+    <AppProvider backend={stato.backend} iniziali={stato.dati} offlineDal={stato.offlineDal ?? null}>
       <Guscio />
     </AppProvider>
   );

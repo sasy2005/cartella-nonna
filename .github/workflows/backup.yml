@@ -1,0 +1,65 @@
+name: Backup settimanale
+
+# Ogni domenica notte: scarica dati, foto e PDF da Supabase, li chiude in un archivio
+# cifrato con la password BACKUP_PASSWORD e lo conserva qui per 90 giorni
+# (Actions → Backup settimanale → l'esecuzione → Artifacts).
+# Il repository è pubblico: niente dati nei registri, l'archivio è illeggibile senza password.
+on:
+  schedule:
+    - cron: "23 2 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Controlla la password
+        env:
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          if [ -z "$PW" ]; then echo "::error::Manca il segreto BACKUP_PASSWORD (vedi GUIDA.md)"; exit 1; fi
+      - name: Scarica i dati
+        run: |
+          mkdir -p /tmp/b/foto
+          curl --fail -sS -o /tmp/b/tutto.json -X POST \
+            "https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co/functions/v1/backup" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" -d '{}'
+          jq 'del(.file)' /tmp/b/tutto.json > /tmp/b/dati.json
+          echo "File da scaricare: $(jq '.file | length' /tmp/b/tutto.json)"
+      - name: Scarica foto e PDF
+        run: |
+          n=0
+          while IFS=$'\t' read -r percorso url; do
+            [ -z "$percorso" ] && continue
+            mkdir -p "/tmp/b/foto/$(dirname "$percorso")"
+            curl --fail -sS -o "/tmp/b/foto/$percorso" "$url" && n=$((n+1))
+          done < <(jq -r '.file[] | [.path, .url] | @tsv' /tmp/b/tutto.json)
+          echo "Scaricati: $n"
+          rm /tmp/b/tutto.json
+      - name: Cifra l'archivio
+        env:
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          command -v 7z >/dev/null || sudo apt-get install -y p7zip-full > /dev/null
+          cd /tmp/b
+          7z a -t7z -mhe=on -p"$PW" "/tmp/cartella-nonna-$(date +%F).7z" dati.json foto > /dev/null
+          ls -la /tmp/*.7z | awk '{print $5, $9}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cartella-nonna-backup
+          path: /tmp/cartella-nonna-*.7z
+          retention-days: 90
+      - name: Segna la data dell'ultimo backup
+        # tiene attivo il repository: GitHub spegne i workflow programmati dopo 60 giorni senza modifiche
+        run: |
+          date -u +%FT%TZ > .github/ultimo-backup.txt
+          git config user.name "backup-automatico"
+          git config user.email "backup@users.noreply.github.com"
+          git add .github/ultimo-backup.txt
+          git commit -m "Backup del $(date +%F) [skip ci]"
+          git push

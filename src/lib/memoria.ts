@@ -71,3 +71,39 @@ export function chiediMemoriaPersistente() {
     /* non supportato */
   }
 }
+
+/* ---------- Copia dei dati per usarli senza internet ---------- */
+
+export async function salvaCacheDati(dati: unknown) {
+  await idb("readwrite", (s) => s.put(JSON.stringify({ quando: new Date().toISOString(), dati }), "cache-dati"));
+}
+
+export async function leggiCacheDati<T>(): Promise<{ quando: string; dati: T } | null> {
+  const v = await idb<string>("readonly", (s) => s.get("cache-dati"));
+  try {
+    return v ? JSON.parse(v) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Foto e PDF già aperti restano sul telefono e si vedono anche senza rete. */
+export async function fileConCache(path: string, scarica: () => Promise<string>): Promise<Blob> {
+  const chiave = new URL("__file/" + path, location.href).href;
+  let cache: Cache | null = null;
+  try {
+    cache = await caches.open("cartella-nonna-file");
+    const hit = await cache.match(chiave);
+    if (hit) return await hit.blob();
+  } catch {
+    /* cache non disponibile */
+  }
+  const r = await fetch(await scarica());
+  if (!r.ok) throw new Error("File non disponibile");
+  try {
+    await cache?.put(chiave, r.clone());
+  } catch {
+    /* spazio finito: pazienza */
+  }
+  return await r.blob();
+}

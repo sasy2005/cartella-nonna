@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Dati, Impegno, Profilo } from "../../supabase/functions/_shared/tipi.ts";
 import type { Backend, Tabella } from "./backend.ts";
+import { salvaCacheDati } from "./memoria.ts";
 
 /** Le schermate che si aprono sopra le schede (una pila: "Indietro" torna alla precedente). */
 export type Vista =
@@ -19,10 +20,16 @@ export type Vista =
   | { k: "comprato"; id: string }
   | { k: "messaggioMedico" }
   | { k: "profilo" }
-  | { k: "impostazioni" };
+  | { k: "impostazioni" }
+  | { k: "portare"; id: string }
+  | { k: "correggiScorta"; id: string }
+  | { k: "stampaTerapia" }
+  | { k: "pratica"; id?: string };
 
 interface Ctx {
   dati: Dati;
+  /** Se non c'è internet: da quando sono i dati mostrati (ISO), altrimenti null. */
+  offline: string | null;
   backend: Backend;
   salva<T extends { id: string }>(tabella: Tabella, riga: T): Promise<void>;
   elimina(tabella: Tabella, id: string): Promise<void>;
@@ -43,8 +50,19 @@ export function useApp(): Ctx {
   return c;
 }
 
-export function AppProvider({ backend, iniziali, children }: { backend: Backend; iniziali: Dati; children: ReactNode }) {
+export function AppProvider({
+  backend,
+  iniziali,
+  offlineDal = null,
+  children,
+}: {
+  backend: Backend;
+  iniziali: Dati;
+  offlineDal?: string | null;
+  children: ReactNode;
+}) {
   const [dati, setDati] = useState<Dati>(iniziali);
+  const [offline, setOffline] = useState<string | null>(offlineDal);
   const [pila, setPila] = useState<Vista[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const timer = useRef<number>(0);
@@ -58,10 +76,17 @@ export function AppProvider({ backend, iniziali, children }: { backend: Backend;
   const ricarica = useCallback(async () => {
     try {
       setDati(await backend.carica());
+      setOffline(null);
     } catch (e) {
+      if (!navigator.onLine) return; // senza rete: restano i dati salvati sul telefono
       toast("Non riesco ad aggiornare: " + (e as Error).message);
     }
   }, [backend, toast]);
+
+  // Copia dei dati sul telefono, per vederli anche senza internet.
+  useEffect(() => {
+    if (backend.modalita === "cloud" && !offline) salvaCacheDati(dati);
+  }, [backend, dati, offline]);
 
   // Quando si torna sull'app (es. dopo che l'altra persona ha modificato qualcosa) ricarica.
   useEffect(() => {
@@ -138,8 +163,8 @@ export function AppProvider({ backend, iniziali, children }: { backend: Backend;
   }, [profondita]);
 
   const value = useMemo(
-    () => ({ dati, backend, salva, elimina, salvaProfilo, ricarica, toast, pila, apri, chiudi, sostituisci }),
-    [dati, backend, salva, elimina, salvaProfilo, ricarica, toast, pila, apri, chiudi, sostituisci],
+    () => ({ dati, offline, backend, salva, elimina, salvaProfilo, ricarica, toast, pila, apri, chiudi, sostituisci }),
+    [dati, offline, backend, salva, elimina, salvaProfilo, ricarica, toast, pila, apri, chiudi, sostituisci],
   );
 
   return (

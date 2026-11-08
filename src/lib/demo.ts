@@ -32,6 +32,7 @@ function base(p: Partial<Impegno>): Impegno {
     prescrittore: "",
     ricetta_path: null,
     note: "",
+    documenti_da_portare: [],
     ...p,
   };
 }
@@ -78,10 +79,11 @@ export function datiDemo(): Dati {
       { id: id(), titolo: "Esami del sangue", tipo: "Esami", specialita: "Laboratorio analisi", data: aggiungiGiorni(g, -95), note: "Esempio senza foto.", file_path: null, file_tipo: "", impegno_id: null },
     ],
     farmaci: [
-      { id: id(), nome: "Metformina 500 mg", quando: "Colazione e cena", per_giorno: 2, scorta: 30, scorta_al: aggiungiGiorni(g, -11), note: "Esempio", attivo: true },
-      { id: id(), nome: "Insulina lenta (penna)", quando: "Sera, dopo la glicemia", per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -5), note: "Contata in giorni", attivo: true },
-      { id: id(), nome: "Ramipril 5 mg", quando: "Colazione", per_giorno: 1, scorta: 56, scorta_al: aggiungiGiorni(g, -10), note: "Esempio", attivo: true },
-      { id: id(), nome: "Cardioaspirina 100 mg", quando: "Pranzo", per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -21), note: "Esempio", attivo: true },
+      { id: id(), nome: "Metformina 500 mg", quando: "Durante il pasto", momenti: { colazione: 1, cena: 1 }, per_giorno: 2, scorta: 30, scorta_al: aggiungiGiorni(g, -11), note: "Esempio", attivo: true },
+      { id: id(), nome: "Insulina lenta (penna)", quando: "14 unità, dopo aver misurato la glicemia", momenti: { sera: 1 }, per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -5), note: "Contata in giorni", attivo: true },
+      { id: id(), nome: "Ramipril 5 mg", quando: "", momenti: { colazione: 1 }, per_giorno: 1, scorta: 56, scorta_al: aggiungiGiorni(g, -10), note: "Esempio", attivo: true },
+      { id: id(), nome: "Cardioaspirina 100 mg", quando: "", momenti: { pranzo: 1 }, per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -21), note: "Esempio", attivo: true },
     ],
+    pratiche: [],
   };
 }

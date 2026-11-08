@@ -81,3 +81,8 @@ export function giornoSettimana(giorno: string): number {
   const d = new Date(utc(giorno)).getUTCDay();
   return d === 0 ? 7 : d;
 }
+
+/** L'ora (0-23) adesso in Italia. */
+export function oraItaliana(adesso: Date = new Date()): number {
+  return Number(new Intl.DateTimeFormat("en-GB", { timeZone: FUSO, hour: "2-digit", hourCycle: "h23" }).format(adesso));
+}

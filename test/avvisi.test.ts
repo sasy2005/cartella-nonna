@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calcolaAvvisi, scadenzaDi, giorniRimasti, ritiroDi, testoPromemoria, notificaPromemoria } from "../supabase/functions/_shared/avvisi.ts";
+import { calcolaAvvisi, scadenzaDi, giorniRimasti, ritiroDi, testoPromemoria, notificaPromemoria, cosaPortare } from "../supabase/functions/_shared/avvisi.ts";
 import { aggiungiMesi, giornoDi, diffGiorni } from "../supabase/functions/_shared/date.ts";
 import type { Dati, Impegno } from "../supabase/functions/_shared/tipi.ts";
 import { PROFILO_VUOTO } from "../supabase/functions/_shared/tipi.ts";
@@ -30,11 +30,12 @@ function imp(p: Partial<Impegno>): Impegno {
     prescrittore: "",
     ricetta_path: null,
     note: "",
+    documenti_da_portare: [],
     ...p,
   };
 }
 function dati(p: Partial<Dati>): Dati {
-  return { profilo: PROFILO_VUOTO, impegni: [], chiamate: [], contatti: [], documenti: [], farmaci: [], ...p };
+  return { profilo: PROFILO_VUOTO, impegni: [], chiamate: [], contatti: [], documenti: [], farmaci: [], pratiche: [], ...p };
 }
 
 test("date: fuso italiano e mesi", () => {
@@ -64,7 +65,7 @@ test("avvisi: richiamare, prenotare, ritiro, farmaci, visita domani", () => {
   const d = dati({
     impegni: [visita, sangue, eco, fatta],
     chiamate: [{ id: "c", impegno_id: "e", contatto_id: null, quando: "2026-11-04T09:00:00Z", esito: "Nessun posto", richiamare_il: "2026-11-07" }],
-    farmaci: [{ id: "m", nome: "Metformina", quando: "", per_giorno: 2, scorta: 20, scorta_al: "2026-11-01", note: "", attivo: true }],
+    farmaci: [{ id: "m", nome: "Metformina", quando: "", momenti: { colazione: 1, cena: 1 }, per_giorno: 0, scorta: 20, scorta_al: "2026-11-01", note: "", attivo: true }],
   });
   const a = calcolaAvvisi(d, OGGI);
   const ids = a.map((x) => x.id);
@@ -88,4 +89,21 @@ test("avvisi: richiamare, prenotare, ritiro, farmaci, visita domani", () => {
 test("nessun avviso = nessun messaggio", () => {
   assert.equal(testoPromemoria(dati({}), OGGI), null);
   assert.equal(notificaPromemoria(dati({}), OGGI), null);
+});
+
+test("cosa portare: note, documenti scelti e risultati degli esami", () => {
+  const v = imp({ id: "v", tipo: "visita", titolo: "Visita ematologica", stato: "prenotato", data: "2026-11-08T08:30:00Z", portare: "Lista farmaci", documenti_da_portare: ["d1"] });
+  const sangue = imp({ id: "s", titolo: "Esami del sangue", per_visita_id: "v", stato: "fatto", data: "2026-11-01T08:00:00Z", giorni_referto: 3 });
+  const eco = imp({ id: "e", titolo: "Ecografia", per_visita_id: "v" });
+  const doc = (id: string, titolo: string, impegno_id: string | null) => ({ id, titolo, tipo: "Referto", specialita: "Altro", data: "2026-10-01", note: "", file_path: null, file_tipo: "", impegno_id });
+  const d = dati({ impegni: [v, sangue, eco], documenti: [doc("d1", "Referto ematologico 2025", null), doc("d2", "Referto esami del sangue", "s")] });
+  const p = cosaPortare(v, d);
+  assert.deepEqual(p.map((x) => [x.testo, x.pronto]), [
+    ["Lista farmaci", true],
+    ["Referto ematologico 2025", true],
+    ["Risultati: Esami del sangue", true],
+    ["Risultati: Ecografia", false],
+  ]);
+  const a = calcolaAvvisi(d, OGGI).find((x) => x.id === "visita-v")!;
+  assert.ok(a.dettaglio.some((r) => r.startsWith("⚠ Manca ancora: Ecografia")));
 });

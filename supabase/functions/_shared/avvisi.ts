@@ -2,6 +2,7 @@
 // Usato sia dalla schermata "Oggi" sia dal messaggio WhatsApp del mattino.
 
 import type { Chiamata, Dati, Farmaco, Impegno } from "./tipi.ts";
+import { alGiorno } from "./tipi.ts";
 import { aggiungiGiorni, diffGiorni, giornoBreve, giornoDi, oraDi, relativo } from "./date.ts";
 
 /** Margine tra il ritiro del referto e la visita, per non arrivare al limite. */
@@ -52,6 +53,36 @@ export function scadenzaDi(imp: Impegno, dati: Pick<Dati, "impegni">): Scadenza 
   return candidati.reduce((a, b) => (b.giorno < a.giorno ? b : a));
 }
 
+export interface CosaPortare {
+  testo: string;
+  /** nota = scritta a mano, archivio = documento scelto, esame = risultati di un esame collegato */
+  fonte: "nota" | "archivio" | "esame";
+  /** Documento in archivio, se c'è. */
+  documento_id?: string;
+  /** false = manca ancora (es. esame non fatto o referto non caricato). */
+  pronto: boolean;
+}
+
+/** Tutto quello da portare a una visita: note scritte, documenti scelti e risultati degli esami collegati. */
+export function cosaPortare(imp: Impegno, dati: Pick<Dati, "impegni" | "documenti">): CosaPortare[] {
+  const out: CosaPortare[] = righe(imp.portare).map((t) => ({ testo: t, fonte: "nota" as const, pronto: true }));
+  for (const id of imp.documenti_da_portare ?? []) {
+    const d = dati.documenti.find((x) => x.id === id);
+    if (d) out.push({ testo: d.titolo, fonte: "archivio", documento_id: d.id, pronto: true });
+  }
+  for (const e of dati.impegni.filter((x) => x.per_visita_id === imp.id && x.stato !== "annullato")) {
+    const ref = dati.documenti.find((d) => d.impegno_id === e.id);
+    if ((imp.documenti_da_portare ?? []).includes(ref?.id ?? "")) continue;
+    out.push({
+      testo: "Risultati: " + e.titolo,
+      fonte: "esame",
+      documento_id: ref?.id,
+      pronto: Boolean(ref) || (e.stato === "fatto" && e.referto_ritirato),
+    });
+  }
+  return out;
+}
+
 /** Giorno da cui il referto è ritirabile (solo per impegni fatti con ritiro). */
 export function ritiroDi(imp: Impegno): string | null {
   if (imp.stato !== "fatto" || imp.referto_ritirato || !(Number(imp.giorni_referto) > 0) || !imp.data) return null;
@@ -64,13 +95,14 @@ export function chiamateDi(impegnoId: string, chiamate: Chiamata[]): Chiamata[] 
 
 export function scortaAttuale(f: Farmaco, giorno: string): number {
   const passati = Math.max(0, diffGiorni(f.scorta_al, giorno));
-  return Math.max(0, Number(f.scorta) - Number(f.per_giorno) * passati);
+  return Math.max(0, Number(f.scorta) - alGiorno(f) * passati);
 }
 
 /** Giorni di farmaco rimasti, o null se non si conta. */
 export function giorniRimasti(f: Farmaco, giorno: string): number | null {
-  if (!f.attivo || !(Number(f.per_giorno) > 0)) return null;
-  return Math.floor(scortaAttuale(f, giorno) / Number(f.per_giorno));
+  const n = alGiorno(f);
+  if (!f.attivo || !(n > 0)) return null;
+  return Math.floor(scortaAttuale(f, giorno) / n);
 }
 
 function righe(s: string): string[] {
@@ -93,8 +125,10 @@ export function calcolaAvvisi(dati: Dati, g: string): Avviso[] {
       const n = diffGiorni(g, gv);
       if (n >= 0 && n <= 2) {
         const det = [...righe(imp.preparazione)];
-        const port = righe(imp.portare);
-        if (port.length) det.push("Portare: " + port.join(", "));
+        const port = cosaPortare(imp, dati);
+        if (port.length) det.push("Portare: " + port.map((p) => p.testo).join(", "));
+        const mancanti = port.filter((p) => !p.pronto);
+        if (mancanti.length) det.push("⚠ Manca ancora: " + mancanti.map((p) => p.testo.replace(/^Risultati: /, "")).join(", "));
         const dove = imp.luogo || nomeContatto(imp.contatto_id);
         if (dove) det.unshift(dove);
         out.push({

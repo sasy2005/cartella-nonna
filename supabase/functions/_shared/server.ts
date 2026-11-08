@@ -45,13 +45,14 @@ export async function caricaDati(sb: SupabaseClient): Promise<Dati> {
     if (error) throw new Error(`${t}: ${error.message}`);
     return data ?? [];
   };
-  const [p, impegni, chiamate, contatti, documenti, farmaci] = await Promise.all([
+  const [p, impegni, chiamate, contatti, documenti, farmaci, pratiche] = await Promise.all([
     sb.from("profilo").select("dati").eq("id", 1).maybeSingle(),
     tutto("impegni"),
     tutto("chiamate"),
     tutto("contatti"),
     tutto("documenti"),
     tutto("farmaci"),
+    tutto("pratiche"),
   ]);
   return {
     profilo: { ...PROFILO_VUOTO, ...((p.data?.dati as Profilo | undefined) ?? {}) },
@@ -60,5 +61,6 @@ export async function caricaDati(sb: SupabaseClient): Promise<Dati> {
     contatti,
     documenti,
     farmaci: farmaci.map((f) => ({ ...f, per_giorno: Number(f.per_giorno), scorta: Number(f.scorta) })),
+    pratiche,
   } as Dati;
 }
