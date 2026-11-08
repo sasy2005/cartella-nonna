@@ -11,6 +11,7 @@ import { SchermataChiamata, SchermataEsito, SchermataFatto, SchermataPrenotato, 
 import { SchermataRicetta } from "./components/ricetta.tsx";
 import { FormComprato, FormCorreggiScorta, FormFarmaco, MessaggioMedico, SchermataFarmaci, StampaTerapia } from "./components/farmaci.tsx";
 import { SchedaPratica } from "./components/pratiche.tsx";
+import { SchermataFoglio } from "./components/prenotazione.tsx";
 import { leggiCacheDati, memoriaLogin } from "./lib/memoria.ts";
 import { FormContatto, SchermataRubrica } from "./components/rubrica.tsx";
 import { DettaglioDocumento, FormDocumento, SchermataArchivio } from "./components/archivio.tsx";
@@ -35,7 +36,8 @@ function leggiScheda(): Scheda {
 function Vista1({ v }: { v: Vista }) {
   switch (v.k) {
     case "impegno": return <DettaglioImpegno id={v.id} />;
-    case "formImpegno": return <FormImpegno iniziale={v.iniziale} titolo={v.titolo} />;
+    case "formImpegno": return <FormImpegno iniziale={v.iniziale} titolo={v.titolo} documento={v.documento} />;
+    case "foglio": return <SchermataFoglio id={v.id} />;
     case "chiamata": return <SchermataChiamata id={v.id} />;
     case "esito": return <SchermataEsito impegnoId={v.impegnoId} contattoId={v.contattoId} />;
     case "prenotato": return <SchermataPrenotato impegnoId={v.impegnoId} contattoId={v.contattoId} />;

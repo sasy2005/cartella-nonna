@@ -3,16 +3,20 @@ import { SPECIALITA, type Impegno } from "../../supabase/functions/_shared/tipi.
 import { aggiungiGiorni } from "../../supabase/functions/_shared/date.ts";
 import { blobBase64, comprimiImmagine, useApp } from "../lib/app.tsx";
 import { Sheet } from "./ui.tsx";
+import { ScattaFoglio } from "./prenotazione.tsx";
+import { uuid } from "../lib/backend.ts";
 
 /** Foto della ricetta → lettura automatica → modulo già compilato da controllare. */
 export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
   const { backend, sostituisci, toast } = useApp();
-  const [fase, setFase] = useState<"stato" | "scegli" | "leggo">("stato");
+  const [fase, setFase] = useState<"stato" | "scegli" | "leggo" | "foglio">("stato");
+  const [idNuovo] = useState(uuid);
+  const [dallaRicetta, setDallaRicetta] = useState<Partial<Impegno>>({});
   const [stato, setStato] = useState<Impegno["stato"]>("da_prenotare");
   const [anteprima, setAnteprima] = useState("");
   const foto = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
-  const base: Partial<Impegno> = perVisitaId ? { tipo: "esame", per_visita_id: perVisitaId } : {};
+  const base: Partial<Impegno> = { id: idNuovo, ...(perVisitaId ? { tipo: "esame", per_visita_id: perVisitaId } : {}) };
 
   const NOMI: Partial<Record<Impegno["stato"], string>> = { da_prenotare: "da prenotare", prenotato: "già prenotata", fatto: "già fatta" };
   const vaiAlModulo = (p: Partial<Impegno>) =>
@@ -21,6 +25,12 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
       iniziale: { ...base, ...p, stato, ...(stato === "fatto" ? { referto_ritirato: true } : {}) },
       titolo: `Controlla e salva · ${NOMI[stato]}`,
     });
+  /** Dopo la ricetta: se è già prenotata, chiede anche il foglio di prenotazione. */
+  const dopoRicetta = (p: Partial<Impegno>) => {
+    if (stato !== "prenotato") return vaiAlModulo(p);
+    setDallaRicetta(p);
+    setFase("foglio");
+  };
 
   async function gestisci(file: File | undefined) {
     if (!file) return;
@@ -32,7 +42,7 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
       path = await backend.caricaFile(img, "jpg");
       if (backend.modalita === "demo") {
         toast("Foto salvata. In modalità prova compila i campi a mano.");
-        return vaiAlModulo({ ricetta_path: path });
+        return dopoRicetta({ ricetta_path: path });
       }
       const l = await backend.leggiRicetta(await blobBase64(img), "image/jpeg");
       const note = [
@@ -46,8 +56,8 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
         .join("\n");
       const data = /^\d{4}-\d{2}-\d{2}$/.test(l.data_ricetta) ? l.data_ricetta : null;
       const validita = Number(l.validita_giorni) > 0 ? Number(l.validita_giorni) : 0;
-      toast("Ricetta letta: controlla i dati");
-      vaiAlModulo({
+      toast("Ricetta letta");
+      dopoRicetta({
         tipo: perVisitaId ? "esame" : l.tipo,
         titolo: l.titolo,
         specialita: (SPECIALITA as readonly string[]).includes(l.specialita) ? l.specialita : "Altro",
@@ -62,7 +72,7 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
       });
     } catch (e) {
       toast("Non sono riuscito a leggerla: " + (e as Error).message);
-      vaiAlModulo(path ? { ricetta_path: path } : {});
+      dopoRicetta(path ? { ricetta_path: path } : {});
     }
   }
 
@@ -91,6 +101,25 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
             </button>
           ))}
         </div>
+      ) : fase === "foglio" ? (
+        <div className="stack">
+          <div className="alert ok">
+            <b>{dallaRicetta.titolo || "Ricetta"}: fatto</b>
+            <span className="small">Ora fotografa il foglio di prenotazione: leggo data, ora, dove andare, le istruzioni e cosa portare.</span>
+          </div>
+          <ScattaFoglio
+            imp={{ ...base, ...dallaRicetta }}
+            fatto={({ campi, documento }) =>
+              sostituisci({
+                k: "formImpegno",
+                iniziale: { ...base, ...dallaRicetta, ...campi, stato: "prenotato" },
+                titolo: "Controlla e salva · già prenotata",
+                documento,
+              })
+            }
+            salta={{ testo: "Non ce l'ho: inserisco data e luogo a mano", azione: () => vaiAlModulo(dallaRicetta) }}
+          />
+        </div>
       ) : fase === "leggo" ? (
         <div className="stack" style={{ alignItems: "center", textAlign: "center" }}>
           {anteprima && <img src={anteprima} alt="Ricetta" className="preview-img" style={{ maxHeight: 260, objectFit: "contain" }} />}
@@ -113,7 +142,7 @@ export function SchermataRicetta({ perVisitaId }: { perVisitaId?: string }) {
           <button className="big" onClick={() => album.current?.click()}>
             Scegli una foto già fatta
           </button>
-          <button className="ghost" onClick={() => vaiAlModulo({})}>
+          <button className="ghost" onClick={() => dopoRicetta({})}>
             Compila a mano senza foto
           </button>
         </div>

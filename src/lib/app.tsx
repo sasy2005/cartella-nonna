@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Dati, Impegno, Profilo } from "../../supabase/functions/_shared/tipi.ts";
+import type { Dati, Documento, Impegno, Profilo } from "../../supabase/functions/_shared/tipi.ts";
 import type { Backend, Tabella } from "./backend.ts";
 import { salvaCacheDati } from "./memoria.ts";
 
 /** Le schermate che si aprono sopra le schede (una pila: "Indietro" torna alla precedente). */
 export type Vista =
   | { k: "impegno"; id: string }
-  | { k: "formImpegno"; iniziale: Partial<Impegno>; titolo?: string }
+  | { k: "formImpegno"; iniziale: Partial<Impegno>; titolo?: string; documento?: Partial<Documento> }
   | { k: "chiamata"; id: string }
   | { k: "esito"; impegnoId: string; contattoId: string | null }
   | { k: "prenotato"; impegnoId: string; contattoId: string | null }
@@ -24,7 +24,8 @@ export type Vista =
   | { k: "portare"; id: string }
   | { k: "correggiScorta"; id: string }
   | { k: "stampaTerapia" }
-  | { k: "pratica"; id?: string };
+  | { k: "pratica"; id?: string }
+  | { k: "foglio"; id: string };
 
 interface Ctx {
   dati: Dati;

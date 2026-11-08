@@ -1,4 +1,5 @@
-// Legge la foto di una ricetta del Servizio Sanitario e restituisce i campi compilati.
+// Legge la foto di una ricetta del Servizio Sanitario (documento: "ricetta")
+// o di un foglio di prenotazione (documento: "prenotazione") e restituisce i campi compilati.
 // Richiede il segreto ANTHROPIC_API_KEY (vedi GUIDA.md).
 import Anthropic from "npm:@anthropic-ai/sdk@1.6.0";
 import { admin, cors, json, membroDa } from "../_shared/server.ts";
@@ -45,6 +46,41 @@ Compila così:
 - note_lettura: cosa non hai potuto leggere con sicurezza (cifre sfocate, parti tagliate). Stringa vuota se è tutto chiaro.
 Se la foto non è una ricetta, lascia vuoti i campi e spiegalo in note_lettura.`;
 
+const SCHEMA_PRENOTAZIONE = {
+  type: "object",
+  additionalProperties: false,
+  required: ["data", "ora", "prestazione", "struttura", "indirizzo", "reparto", "preparazione", "portare", "codice_prenotazione", "ticket", "note_lettura"],
+  properties: {
+    data: { type: "string" },
+    ora: { type: "string" },
+    prestazione: { type: "string" },
+    struttura: { type: "string" },
+    indirizzo: { type: "string" },
+    reparto: { type: "string" },
+    preparazione: { type: "array", items: { type: "string" } },
+    portare: { type: "array", items: { type: "string" } },
+    codice_prenotazione: { type: "string" },
+    ticket: { type: "string" },
+    note_lettura: { type: "string" },
+  },
+};
+
+const ISTRUZIONI_PRENOTAZIONE = `Leggi la foto di un foglio di prenotazione di una visita o di un esame in Italia (stampato dal CUP, dall'ospedale, dal laboratorio o arrivato per email). Serve a una figlia che accompagna la madre anziana: i dati verranno controllati da lei, quindi preferisci un campo vuoto a un valore inventato.
+
+Compila così:
+- data: il giorno dell'appuntamento in formato AAAA-MM-GG (non la data di stampa né quella della ricetta).
+- ora: l'orario dell'appuntamento in formato HH:MM (24 ore). Se c'è un orario di arrivo/accettazione diverso, usa quello dell'appuntamento e scrivi l'altro in preparazione.
+- prestazione: cosa si fa, breve e chiaro (es. "Visita cardiologica", "Ecografia addome completo").
+- struttura: il nome dell'ospedale, poliambulatorio o laboratorio.
+- indirizzo: via, numero e città della sede.
+- reparto: dove andare dentro la struttura: padiglione, piano, ambulatorio, sportello (es. "Padiglione 3, piano 1, ambulatorio 12").
+- preparazione: le istruzioni da seguire prima, una per voce, riscritte in modo semplice (es. "Digiuno da 8 ore", "Bere 1 litro d'acqua un'ora prima", "Presentarsi 15 minuti prima all'accettazione", "Sospendere la metformina il giorno prima"). Lista vuota se non ce ne sono.
+- portare: cosa portare, una voce per elemento (es. "Impegnativa del medico", "Tessera sanitaria", "Esami precedenti"). Lista vuota se non indicato.
+- codice_prenotazione: il numero o codice della prenotazione, se c'è.
+- ticket: l'importo da pagare se indicato (es. "36,15 €"), oppure "esente" se scritto, altrimenti stringa vuota.
+- note_lettura: cosa non hai potuto leggere con sicurezza. Stringa vuota se è tutto chiaro.
+Se la foto non è un foglio di prenotazione, lascia vuoti i campi e spiegalo in note_lettura.`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ errore: "Metodo non permesso" }, 405);
@@ -52,7 +88,7 @@ Deno.serve(async (req) => {
   const membro = await membroDa(req, admin());
   if (!membro) return json({ errore: "Non sei autorizzato: la tua email non è tra i membri della famiglia." }, 401);
 
-  let body: { immagine?: string; media_type?: string };
+  let body: { immagine?: string; media_type?: string; documento?: string };
   try {
     body = await req.json();
   } catch {
@@ -69,14 +105,14 @@ Deno.serve(async (req) => {
       max_tokens: 8000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
-      system: ISTRUZIONI,
+      output_config: { effort: "low", format: { type: "json_schema", schema: body.documento === "prenotazione" ? SCHEMA_PRENOTAZIONE : SCHEMA } },
+      system: body.documento === "prenotazione" ? ISTRUZIONI_PRENOTAZIONE : ISTRUZIONI,
       messages: [
         {
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: media_type as "image/jpeg", data: immagine } },
-            { type: "text", text: "Leggi questa ricetta e compila i campi." },
+            { type: "text", text: body.documento === "prenotazione" ? "Leggi questo foglio di prenotazione e compila i campi." : "Leggi questa ricetta e compila i campi." },
           ],
         },
       ],

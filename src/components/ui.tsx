@@ -59,13 +59,14 @@ export type Campo =
 export type Valori = Record<string, string | boolean>;
 
 export function Modulo({
-  campi,
+  campi: campiDa,
   iniziali,
   onSalva,
   etichetta = "Salva",
   extra,
 }: {
-  campi: Campo[];
+  /** I campi, oppure una funzione che li sceglie in base ai valori attuali (es. secondo lo stato). */
+  campi: Campo[] | ((v: Valori) => Campo[]);
   iniziali: Valori;
   onSalva: (v: Valori) => void | Promise<void>;
   etichetta?: string;
@@ -73,6 +74,7 @@ export function Modulo({
 }) {
   const [v, setV] = useState<Valori>(iniziali);
   const [salvo, setSalvo] = useState(false);
+  const campi = typeof campiDa === "function" ? campiDa(v) : campiDa;
   const set = (k: string, x: string | boolean) => setV((o) => ({ ...o, [k]: x }));
   return (
     <form

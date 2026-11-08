@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --no-warnings --test test/avvisi.test.ts test/casi-limite.test.ts"
+    "test": "node --experimental-strip-types --no-warnings --test test/avvisi.test.ts test/casi-limite.test.ts test/foglio.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.0",

@@ -22,6 +22,20 @@ export interface LetturaRicetta {
   note_lettura: string;
 }
 
+export interface LetturaPrenotazione {
+  data: string;
+  ora: string;
+  prestazione: string;
+  struttura: string;
+  indirizzo: string;
+  reparto: string;
+  preparazione: string[];
+  portare: string[];
+  codice_prenotazione: string;
+  ticket: string;
+  note_lettura: string;
+}
+
 export interface Membro {
   email: string;
   nome: string;
@@ -40,6 +54,7 @@ export interface Backend {
   urlFile(path: string): Promise<string>;
   eliminaFile(path: string): Promise<void>;
   leggiRicetta(base64: string, mediaType: string): Promise<LetturaRicetta>;
+  leggiPrenotazione(base64: string, mediaType: string): Promise<LetturaPrenotazione>;
   membro(): Promise<Membro | null>;
   salvaMembro(m: Partial<Membro>): Promise<void>;
   inviaProva(): Promise<string>;
@@ -161,6 +176,9 @@ function cloud(session: Session): Backend {
     },
     async leggiRicetta(base64, mediaType) {
       return invoca<LetturaRicetta>("leggi-ricetta", { immagine: base64, media_type: mediaType });
+    },
+    async leggiPrenotazione(base64, mediaType) {
+      return invoca<LetturaPrenotazione>("leggi-ricetta", { immagine: base64, media_type: mediaType, documento: "prenotazione" });
     },
     async membro() {
       const r = await sb.from("membri").select("*").maybeSingle();
@@ -287,6 +305,9 @@ export function backendDemo(): Backend {
       }
     },
     async leggiRicetta() {
+      throw new Error("In modalità prova la lettura automatica non è attiva: compila i campi a mano.");
+    },
+    async leggiPrenotazione() {
       throw new Error("In modalità prova la lettura automatica non è attiva: compila i campi a mano.");
     },
     async membro() {

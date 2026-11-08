@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { COLORE_SPECIALITA, PRIORITA, SPECIALITA, type Impegno } from "../../supabase/functions/_shared/tipi.ts";
+import { COLORE_SPECIALITA, PRIORITA, SPECIALITA, type Documento, type Impegno } from "../../supabase/functions/_shared/tipi.ts";
 import { chiamateDi, cosaPortare, ritiroDi, scadenzaDi } from "../../supabase/functions/_shared/avvisi.ts";
 import { aggiungiGiorni, aggiungiMesi, diffGiorni, giornoBreve, giornoDi, giornoEsteso, giornoSettimana, oggi, oraDi, relativo } from "../../supabase/functions/_shared/date.ts";
 import { inputIso, isoInput, righe, useApp } from "../lib/app.tsx";
@@ -265,9 +265,14 @@ export function DettaglioImpegno({ id }: { id: string }) {
         </div>
       )}
       {imp.stato === "prenotato" && (
-        <button className="primary big" onClick={() => apri({ k: "fatto", impegnoId: imp.id })}>
-          Fatto! {imp.tipo === "visita" ? "Com'è andata la visita" : "Esame fatto"}
-        </button>
+        <>
+          <button className="primary big" onClick={() => apri({ k: "fatto", impegnoId: imp.id })}>
+            Fatto! {imp.tipo === "visita" ? "Com'è andata la visita" : "Esame fatto"}
+          </button>
+          {!docs.some((d) => d.tipo === "Prenotazione") && (
+            <button onClick={() => apri({ k: "foglio", id: imp.id })}>Fotografa il foglio di prenotazione</button>
+          )}
+        </>
       )}
       {rit && (
         <button
@@ -394,7 +399,7 @@ export function DettaglioImpegno({ id }: { id: string }) {
 
       {docs.length > 0 && (
         <div className="card">
-          <span className="eyebrow">Referti</span>
+          <span className="eyebrow">Documenti</span>
           {docs.map((d) => (
             <button key={d.id} className="ghost" style={{ justifyContent: "flex-start", padding: 0 }} onClick={() => apri({ k: "documento", id: d.id })}>
               {d.titolo} →
@@ -431,19 +436,18 @@ export function DettaglioImpegno({ id }: { id: string }) {
 
 /* ---------- Modulo ---------- */
 
-export function FormImpegno({ iniziale, titolo }: { iniziale: Partial<Impegno>; titolo?: string }) {
-  const { dati, salva, chiudi, toast } = useApp();
+export function FormImpegno({ iniziale, titolo, documento }: { iniziale: Partial<Impegno>; titolo?: string; documento?: Partial<Documento> }) {
+  const { dati, salva, chiudi, toast, sostituisci, pila } = useApp();
   const imp = nuovoImpegno(iniziale);
   const esistente = dati.impegni.some((i) => i.id === imp.id);
   const g = oggi();
   const visite = dati.impegni.filter((v) => v.tipo === "visita" && v.stato !== "fatto" && v.stato !== "annullato" && v.id !== imp.id);
-  const strutture = dati.contatti.filter((c) => c.tipo === "struttura");
 
-  const campi: Campo[] = [
-    { k: "tipo", l: "È una", tipo: "select", opzioni: [["visita", "Visita"], ["esame", "Esame (sangue, ecografia, …)"]] },
-    { k: "titolo", l: "Cosa", hint: "Es: Visita cardiologica, Ecografia addome" },
-    { k: "specialita", l: "Reparto", tipo: "select", opzioni: SPECIALITA.map((s) => [s, s]) },
-    {
+  const C: Record<string, Campo> = {
+    tipo: { k: "tipo", l: "È una", tipo: "select", opzioni: [["visita", "Visita"], ["esame", "Esame (sangue, ecografia, …)"]] },
+    titolo: { k: "titolo", l: "Cosa", hint: "Es: Visita cardiologica, Ecografia addome" },
+    specialita: { k: "specialita", l: "Reparto", tipo: "select", opzioni: SPECIALITA.map((x) => [x, x]) },
+    stato: {
       k: "stato",
       l: "Stato",
       tipo: "select",
@@ -454,21 +458,35 @@ export function FormImpegno({ iniziale, titolo }: { iniziale: Partial<Impegno>; 
         ["annullato", "Annullato"],
       ],
     },
-    { k: "data", l: "Data e ora dell'appuntamento", tipo: "datetime-local", hint: "Solo se è prenotato" },
-    { k: "luogo", l: "Dove", hint: "Ospedale, padiglione, piano, ambulatorio" },
-    { k: "contatto_id", l: "Struttura", tipo: "select", opzioni: [["", "—"], ...strutture.map((c) => [c.id, c.nome] as [string, string])] },
-    { k: "per_visita_id", l: "Serve per la visita", tipo: "select", hint: "Per gli esami da portare a una visita", opzioni: [["", "— nessuna"], ...visite.map((v) => [v.id, v.titolo + (v.data ? " (" + giornoBreve(giornoDi(v.data), g) + ")" : "")] as [string, string])] },
-    { k: "giorni_referto", l: "Dopo quanti giorni è pronto il referto", tipo: "number", hint: "0 se lo danno subito", rapidi: [{ l: "Subito", v: "0" }, { l: "3 giorni", v: "3" }, { l: "1 settimana", v: "7" }, { l: "2 settimane", v: "14" }] },
-    { k: "entro", l: "Da fare entro", tipo: "date", hint: "Se c'è una data limite (es. controllo tra 6 mesi)", rapidi: [{ l: "1 mese", v: aggiungiMesi(g, 1) }, { l: "3 mesi", v: aggiungiMesi(g, 3) }, { l: "6 mesi", v: aggiungiMesi(g, 6) }, { l: "1 anno", v: aggiungiMesi(g, 12) }] },
-    { k: "preparazione", l: "Istruzioni prima", tipo: "textarea", hint: "Una per riga. Es: Digiuno dalla mezzanotte" },
-    { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Una per riga. Es: Esami del sangue di settembre, Lista farmaci. I referti in archivio li scegli dalla scheda della visita." },
-    { k: "nre", l: "Codice ricetta (NRE)", hint: "In alto sulla ricetta, sotto il codice a barre" },
-    { k: "priorita", l: "Priorità sulla ricetta", tipo: "select", opzioni: [["", "—"], ...(Object.entries(PRIORITA) as [string, string][]).map(([k, v]) => [k, `${k} · ${v}`] as [string, string])] },
-    { k: "data_ricetta", l: "Data della ricetta", tipo: "date" },
-    { k: "scadenza_ricetta", l: "La ricetta scade il", tipo: "date", hint: "Se non lo sai, chiedi al medico o al CUP" },
-    { k: "prescrittore", l: "Chi l'ha prescritta" },
-    { k: "note", l: "Note", tipo: "textarea" },
-  ];
+    data: { k: "data", l: "Data e ora", tipo: "datetime-local" },
+    dataFatto: { k: "data", l: "Quando è stata fatta", tipo: "datetime-local", hint: "Anche solo il giorno, se non ricordi l'ora" },
+    luogo: { k: "luogo", l: "Dove", hint: "Ospedale, padiglione, piano, ambulatorio" },
+    per_visita_id: { k: "per_visita_id", l: "Serve per la visita", tipo: "select", hint: "Se i risultati vanno portati a una visita", opzioni: [["", "— nessuna"], ...visite.map((v) => [v.id, v.titolo + (v.data ? " (" + giornoBreve(giornoDi(v.data), g) + ")" : "")] as [string, string])] },
+    giorni_referto: { k: "giorni_referto", l: "Dopo quanti giorni è pronto il referto", tipo: "number", hint: "0 se lo danno subito", rapidi: [{ l: "Subito", v: "0" }, { l: "3 giorni", v: "3" }, { l: "1 settimana", v: "7" }, { l: "2 settimane", v: "14" }] },
+    entro: { k: "entro", l: "Da fare entro", tipo: "date", hint: "Se c'è una data limite (es. controllo tra 6 mesi)", rapidi: [{ l: "1 mese", v: aggiungiMesi(g, 1) }, { l: "3 mesi", v: aggiungiMesi(g, 3) }, { l: "6 mesi", v: aggiungiMesi(g, 6) }, { l: "1 anno", v: aggiungiMesi(g, 12) }] },
+    preparazione: { k: "preparazione", l: "Istruzioni prima", tipo: "textarea", hint: "Una per riga. Es: Digiuno dalla mezzanotte" },
+    portare: { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Una per riga. I referti dell'archivio li scegli dalla scheda della visita." },
+    nre: { k: "nre", l: "Codice ricetta (NRE)", hint: "In alto sulla ricetta, sotto il codice a barre" },
+    priorita: { k: "priorita", l: "Priorità sulla ricetta", tipo: "select", opzioni: [["", "—"], ...(Object.entries(PRIORITA) as [string, string][]).map(([k, v]) => [k, `${k} · ${v}`] as [string, string])] },
+    data_ricetta: { k: "data_ricetta", l: "Data della ricetta", tipo: "date" },
+    scadenza_ricetta: { k: "scadenza_ricetta", l: "La ricetta scade il", tipo: "date", hint: "Se non lo sai, chiedi al medico o al CUP" },
+    prescrittore: { k: "prescrittore", l: "Chi l'ha prescritta" },
+    note: { k: "note", l: "Note", tipo: "textarea" },
+  };
+
+  /** Solo i campi che servono per quello stato: gli altri restano salvati ma nascosti. */
+  const campi = (v: Valori): Campo[] => {
+    const esame = v.tipo === "esame";
+    const lista: (string | false)[] =
+      v.stato === "prenotato"
+        ? ["tipo", "titolo", "specialita", "stato", "data", "luogo", "preparazione", "portare", esame && "per_visita_id", esame && "giorni_referto", "note"]
+        : v.stato === "fatto"
+          ? ["tipo", "titolo", "specialita", "stato", "dataFatto", "luogo", esame && "giorni_referto", "note"]
+          : v.stato === "annullato"
+            ? ["titolo", "stato", "note"]
+            : ["tipo", "titolo", "specialita", "stato", esame && "per_visita_id", esame && "giorni_referto", "entro", "nre", "priorita", "data_ricetta", "scadenza_ricetta", "prescrittore", "portare", "note"];
+    return lista.filter((x): x is string => Boolean(x)).map((k) => C[k]);
+  };
 
   const iniz: Valori = {
     ...Object.fromEntries(Object.entries(imp).map(([k, v]) => [k, v === null ? "" : typeof v === "boolean" ? v : String(v)])),
@@ -485,7 +503,6 @@ export function FormImpegno({ iniziale, titolo }: { iniziale: Partial<Impegno>; 
       stato: s("stato") as Impegno["stato"],
       data: inputIso(s("data")),
       luogo: s("luogo"),
-      contatto_id: s("contatto_id") || null,
       per_visita_id: s("per_visita_id") || null,
       giorni_referto: Number(s("giorni_referto")) || 0,
       entro: s("entro") || null,
@@ -501,12 +518,28 @@ export function FormImpegno({ iniziale, titolo }: { iniziale: Partial<Impegno>; 
     if (!nuovo.titolo) return toast("Scrivi almeno cosa c'è da fare");
     if (nuovo.stato === "prenotato" && !nuovo.data) return toast("Inserisci data e ora della prenotazione");
     await salva("impegni", nuovo);
+    const prima = dati.impegni.find((i) => i.id === nuovo.id);
+    if (prima?.stato === "da_prenotare" && nuovo.stato === "prenotato" && nuovo.data)
+      await salva("chiamate", { id: uuid(), impegno_id: nuovo.id, contatto_id: null, quando: new Date().toISOString(), esito: `Prenotato per il ${giornoBreve(giornoDi(nuovo.data))} alle ${oraDi(nuovo.data)}`, richiamare_il: null });
+    // la foto del foglio di prenotazione va in archivio, collegata alla visita
+    if (documento?.file_path)
+      await salva("documenti", {
+        id: uuid(), tipo: "Prenotazione", data: oggi(), note: "", file_tipo: "image/jpeg", ...documento,
+        titolo: "Foglio di prenotazione – " + nuovo.titolo,
+        specialita: nuovo.specialita, impegno_id: nuovo.id,
+      } as Documento);
     toast("Salvato");
-    chiudi();
+    chiudi(pila[pila.length - 2]?.k === "chiamata" ? 2 : 1);
   };
 
   return (
     <Sheet titolo={titolo ?? (esistente ? "Modifica" : "Nuova visita o esame")}>
+      {documento?.file_path && <p className="small chip blocco ok">Foto del foglio di prenotazione: verrà salvata con la visita</p>}
+      {esistente && imp.stato === "prenotato" && !documento && (
+        <button className="mini" onClick={() => sostituisci({ k: "foglio", id: imp.id })}>
+          Compila dal foglio di prenotazione (foto)
+        </button>
+      )}
       <Modulo campi={campi} iniziali={iniz} onSalva={salvaV} />
     </Sheet>
   );

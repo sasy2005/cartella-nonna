@@ -6,6 +6,7 @@ import { copia, inputIso, isoInput, useApp } from "../lib/app.tsx";
 import { uuid } from "../lib/backend.ts";
 import { nuovoImpegno } from "./impegni.tsx";
 import { Modulo, Sheet, type Campo } from "./ui.tsx";
+import { ScattaFoglio } from "./prenotazione.tsx";
 
 /** Schermata a caratteri grandi da tenere aperta durante la telefonata. */
 export function SchermataChiamata({ id }: { id: string }) {
@@ -176,7 +177,8 @@ export function SchermataEsito({ impegnoId, contattoId }: { impegnoId: string; c
 
 /** "Prenotato!": data, luogo e preparazione. */
 export function SchermataPrenotato({ impegnoId, contattoId }: { impegnoId: string; contattoId: string | null }) {
-  const { dati, salva, chiudi, toast, pila } = useApp();
+  const { dati, salva, chiudi, toast, pila, sostituisci } = useApp();
+  const [foglio, setFoglio] = useState(false);
   const imp = dati.impegni.find((i) => i.id === impegnoId);
   if (!imp) return null;
   const campi: Campo[] = [
@@ -191,6 +193,18 @@ export function SchermataPrenotato({ impegnoId, contattoId }: { impegnoId: strin
   return (
     <Sheet titolo="Prenotato!">
       <p className="muted">{imp.titolo}</p>
+      {!foglio ? (
+        <button className="big" onClick={() => setFoglio(true)}>
+          Hai il foglio di prenotazione? Fotografalo
+        </button>
+      ) : (
+        <ScattaFoglio
+          imp={imp}
+          fatto={({ campi, documento }) => sostituisci({ k: "formImpegno", iniziale: { ...imp, ...campi }, titolo: "Controlla e salva · prenotato", documento })}
+          salta={{ testo: "Annulla, scrivo a mano", azione: () => setFoglio(false) }}
+        />
+      )}
+      {!foglio && <p className="small muted">Oppure inserisci tu i dati che ti hanno dato al telefono:</p>}
       <Modulo
         campi={campi}
         etichetta="Salva la prenotazione"
