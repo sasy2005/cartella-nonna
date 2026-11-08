@@ -380,3 +380,6 @@ h1 { letter-spacing: -0.01em; }
 }
 :root[data-aspetto="scuro"] .azione-ricetta { background: var(--accent-soft); color: var(--fg); }
 :root[data-aspetto="scuro"] .azione-ricetta .icona { background: var(--accent); color: var(--accent-ink); }
+a { color: var(--accent); font-weight: 700; text-underline-offset: 3px; }
+a.btn, a.phone { font-weight: inherit; }
+a.phone { color: var(--fg); }

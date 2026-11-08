@@ -42,12 +42,13 @@ export function SchermataRubrica() {
         </button>
       </div>
       <section>
-        <h2>Dove prenotare</h2>
-        <p className="small muted">Ospedali, laboratori e numeri per prenotare. Compaiono nella schermata “Sto chiamando”.</p>
-        {strutture.length ? strutture.map((c) => <Card key={c.id} c={c} />) : <Vuoto>Aggiungi gli ospedali e i laboratori vicini a casa.</Vuoto>}
+        <h2>Numeri per prenotare</h2>
+        <p className="small muted">Il CUP e i siti per prenotare online: li ritrovi in “Sto chiamando”.</p>
+        {strutture.length ? strutture.map((c) => <Card key={c.id} c={c} />) : <Vuoto>Aggiungi il numero del CUP.</Vuoto>}
       </section>
       <section>
         <h2>Medici</h2>
+        <p className="small muted">Metti almeno il medico di base (reparto “Medicina generale”): così dai Farmaci gli mandi su WhatsApp la richiesta delle ricette.</p>
         {medici.length ? medici.map((c) => <Card key={c.id} c={c} />) : <Vuoto>Aggiungi il medico di base e gli specialisti.</Vuoto>}
       </section>
     </>
@@ -60,7 +61,7 @@ export function FormContatto({ id }: { id?: string }) {
   const c: Contatto = dati.contatti.find((x) => x.id === id) ?? { id: uuid(), nome: "", tipo: "medico", specialita: "Medicina generale", telefono: "", orari: "", sito: "", note: "" };
   const campi: Campo[] = [
     { k: "nome", l: "Nome" },
-    { k: "tipo", l: "È un", tipo: "select", opzioni: [["medico", "Medico"], ["struttura", "Ospedale / laboratorio / numero per prenotare"]] },
+    { k: "tipo", l: "È un", tipo: "select", opzioni: [["medico", "Medico"], ["struttura", "Numero per prenotare (CUP, ospedale)"]] },
     { k: "specialita", l: "Reparto", tipo: "select", opzioni: SPECIALITA.map((s) => [s, s]) },
     { k: "telefono", l: "Telefono", tipo: "tel" },
     { k: "orari", l: "Orari e come contattarlo", hint: "Es: chiamare dopo le 10, premere 2" },

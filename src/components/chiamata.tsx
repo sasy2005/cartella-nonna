@@ -17,7 +17,6 @@ export function SchermataChiamata({ id }: { id: string }) {
   const sc = scadenzaDi(imp, dati);
   const storico = chiamateDi(imp.id, dati.chiamate);
   const strutture = dati.contatti.filter((c) => c.tipo === "struttura");
-  const ultimaPer = (cid: string) => storico.filter((c) => c.contatto_id === cid).pop();
 
   const righe: [string, string, boolean][] = [
     ["Prestazione", imp.titolo, false],
@@ -68,48 +67,30 @@ export function SchermataChiamata({ id }: { id: string }) {
           )}
         </div>
 
-        <h2>Dove chiamare</h2>
-        {strutture.length === 0 && <p className="muted">Aggiungi numeri e strutture nella Rubrica.</p>}
-        {strutture.map((c) => {
-          const u = ultimaPer(c.id);
-          return (
-            <div className="card" key={c.id}>
-              <b>{c.nome}</b>
-              {c.telefono && (
-                <a className="phone" href={"tel:" + c.telefono.replace(/[^\d+]/g, "")}>
-                  {c.telefono}
-                </a>
-              )}
-              {c.orari && <span className="small muted">{c.orari}</span>}
-              {c.sito && (
-                <a href={c.sito} target="_blank" rel="noreferrer" className="small">
-                  Prenota online →
-                </a>
-              )}
-              {u && (
-                <span className="small chip blocco warn">
-                  {relativo(g, giornoDi(u.quando))}: {u.esito || "nessun posto"}
-                </span>
-              )}
-              <div className="row">
-                <button className="grow primary" onClick={() => apri({ k: "prenotato", impegnoId: imp.id, contattoId: c.id })}>
-                  Prenotato qui
-                </button>
-                <button className="grow" onClick={() => apri({ k: "esito", impegnoId: imp.id, contattoId: c.id })}>
-                  Niente posto
-                </button>
-              </div>
-            </div>
-          );
-        })}
-        <div className="row">
-          <button className="grow" onClick={() => apri({ k: "prenotato", impegnoId: imp.id, contattoId: null })}>
-            Prenotato altrove
-          </button>
-          <button className="grow" onClick={() => apri({ k: "esito", impegnoId: imp.id, contattoId: null })}>
-            Altro esito
-          </button>
-        </div>
+        {strutture.map((c) => (
+          <div className="card" key={c.id}>
+            <span className="eyebrow">{c.nome}</span>
+            {c.telefono && (
+              <a className="phone" href={"tel:" + c.telefono.replace(/[^\d+]/g, "")}>
+                {c.telefono}
+              </a>
+            )}
+            {c.orari && <span className="small muted">{c.orari}</span>}
+            {c.sito && (
+              <a href={c.sito} target="_blank" rel="noreferrer" className="small">
+                Prenota online →
+              </a>
+            )}
+          </div>
+        ))}
+        {strutture.length === 0 && <p className="muted">Aggiungi il numero del CUP in Rubrica, così lo trovi qui.</p>}
+
+        <button className="primary big" onClick={() => apri({ k: "prenotato", impegnoId: imp.id, contattoId: null })}>
+          Prenotato!
+        </button>
+        <button className="big" onClick={() => apri({ k: "esito", impegnoId: imp.id, contattoId: null })}>
+          Niente posto
+        </button>
 
         {storico.length > 0 && (
           <div className="card">
@@ -142,7 +123,6 @@ function inizioMeseProssimo(g: string) {
 /** "Niente posto": annota la chiamata e quando richiamare. */
 export function SchermataEsito({ impegnoId, contattoId }: { impegnoId: string; contattoId: string | null }) {
   const { dati, salva, chiudi, toast } = useApp();
-  // dopo "Niente posto" si torna alla schermata della chiamata, per provare la struttura successiva
   const imp = dati.impegni.find((i) => i.id === impegnoId);
   const g = oggi();
   if (!imp) return null;
@@ -157,7 +137,6 @@ export function SchermataEsito({ impegnoId, contattoId }: { impegnoId: string; c
         { l: "Non rispondono", v: "Non rispondono" },
       ],
     },
-    { k: "contatto_id", l: "Chi hai chiamato", tipo: "select", opzioni: [["", "—"], ...dati.contatti.map((c) => [c.id, c.nome] as [string, string])] },
     {
       k: "richiamare_il",
       l: "Quando richiamare",
@@ -176,12 +155,12 @@ export function SchermataEsito({ impegnoId, contattoId }: { impegnoId: string; c
       <p className="muted">{imp.titolo}</p>
       <Modulo
         campi={campi}
-        iniziali={{ esito: "Nessun posto", contatto_id: contattoId ?? "", richiamare_il: aggiungiGiorni(g, 3) }}
+        iniziali={{ esito: "Nessun posto", richiamare_il: aggiungiGiorni(g, 3) }}
         onSalva={async (v) => {
           const c: Chiamata = {
             id: uuid(),
             impegno_id: imp.id,
-            contatto_id: String(v.contatto_id) || null,
+            contatto_id: contattoId,
             quando: new Date().toISOString(),
             esito: String(v.esito || "Nessun posto"),
             richiamare_il: String(v.richiamare_il) || null,
@@ -200,11 +179,9 @@ export function SchermataPrenotato({ impegnoId, contattoId }: { impegnoId: strin
   const { dati, salva, chiudi, toast, pila } = useApp();
   const imp = dati.impegni.find((i) => i.id === impegnoId);
   if (!imp) return null;
-  const strutture = dati.contatti.filter((c) => c.tipo === "struttura");
   const campi: Campo[] = [
     { k: "data", l: "Data e ora", tipo: "datetime-local" },
-    { k: "contatto_id", l: "Dove hai prenotato", tipo: "select", opzioni: [["", "—"], ...strutture.map((c) => [c.id, c.nome] as [string, string])] },
-    { k: "luogo", l: "Indirizzo / reparto", hint: "Padiglione, piano, ambulatorio" },
+    { k: "luogo", l: "Dove", hint: "Quello che ti ha detto il CUP: ospedale, padiglione, piano" },
     { k: "preparazione", l: "Istruzioni che ti hanno dato", tipo: "textarea", hint: "Una per riga. Es: Digiuno da 6 ore" },
     { k: "portare", l: "Cosa portare", tipo: "textarea", hint: "Una per riga" },
     ...(imp.tipo === "esame"
@@ -219,7 +196,6 @@ export function SchermataPrenotato({ impegnoId, contattoId }: { impegnoId: strin
         etichetta="Salva la prenotazione"
         iniziali={{
           data: isoInput(imp.data),
-          contatto_id: contattoId ?? imp.contatto_id ?? "",
           luogo: imp.luogo,
           preparazione: imp.preparazione,
           portare: imp.portare,
@@ -232,7 +208,7 @@ export function SchermataPrenotato({ impegnoId, contattoId }: { impegnoId: strin
             ...imp,
             stato: "prenotato",
             data,
-            contatto_id: String(v.contatto_id) || null,
+            contatto_id: contattoId ?? imp.contatto_id,
             luogo: String(v.luogo).trim(),
             preparazione: String(v.preparazione).trim(),
             portare: String(v.portare).trim(),
