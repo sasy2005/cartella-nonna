@@ -294,7 +294,7 @@ table.terapia .istr { font-size: 0.95rem; color: var(--muted); margin-top: 2px; 
   min-height: 46px; padding: 6px 2px 4px; border-radius: var(--r-s); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
   font-variant-numeric: tabular-nums; font-weight: 700; border: 0; background: transparent;
 }
-.mese button.giorno.fuori { opacity: 0.35; }
+.mese button.giorno.fuori { color: var(--muted); font-weight: 400; }
 .mese button.giorno.oggi { box-shadow: inset 0 0 0 2px var(--accent); }
 .mese button.giorno.con-visite { background: var(--sunk); }
 .mese button.giorno[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }

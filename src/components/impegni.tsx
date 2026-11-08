@@ -155,7 +155,7 @@ export function SchermataImpegni({ inizio = "da_prenotare" }: { inizio?: Filtro 
         </button>
       </div>
       <section>
-        <div className="filters" role="tablist">
+        <div className="filters">
           {(
             [
               ["calendario", "Calendario"],
