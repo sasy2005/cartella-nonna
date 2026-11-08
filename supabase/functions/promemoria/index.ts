@@ -8,6 +8,22 @@ import { admin, caricaDati, cors, json, membroDa, type Membro } from "../_shared
 import { notificaPromemoria, testoPromemoria } from "../_shared/avvisi.ts";
 import { oggi, oraItaliana } from "../_shared/date.ts";
 import { chiaviVapid, inviaPush, type Iscrizione } from "../_shared/push.ts";
+import Anthropic from "npm:@anthropic-ai/sdk@1.6.0";
+
+/** La chiave di Claude funziona? (chiamata gratuita: elenco modelli) */
+async function controllaClaude(): Promise<string> {
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) return "chiave mancante";
+  try {
+    await new Anthropic().models.list({ limit: 1 });
+    return "ok";
+  } catch (e) {
+    if (e instanceof Anthropic.AuthenticationError) return "chiave non valida";
+    if (e instanceof Anthropic.PermissionDeniedError) return "chiave senza permessi";
+    if (e instanceof Anthropic.APIConnectionError) return "servizio non raggiungibile";
+    if (e instanceof Anthropic.APIError) return "errore " + e.status;
+    return "errore";
+  }
+}
 
 async function inviaWhatsapp(m: Membro, testo: string): Promise<string | null> {
   if (!m.whatsapp_tel || !m.callmebot_key) return "numero o codice CallMeBot mancante";
@@ -38,7 +54,7 @@ Deno.serve(async (req) => {
     daOrologio = Boolean(data?.valore) && data!.valore === token;
   }
   const daCron = daGithub || daOrologio;
-  let body: { chiave?: boolean; prova?: string; stato?: boolean; pianifica?: boolean; giro?: string } = {};
+  let body: { chiave?: boolean; prova?: string; stato?: boolean; pianifica?: boolean; giro?: string; verifica?: boolean } = {};
   try {
     body = await req.json();
   } catch {
@@ -49,6 +65,40 @@ Deno.serve(async (req) => {
   if (body.pianifica && daGithub) {
     const { data, error } = await sb.rpc("pianifica_promemoria", { base_url: Deno.env.get("SUPABASE_URL")! });
     return error ? json({ errore: error.message }, 500) : json({ messaggio: data });
+  }
+
+  // Controllo completo (workflow "Controllo completo"): solo numeri e stati, nessun dato personale.
+  if (body.verifica && daGithub) {
+    const conta = async (t: string) => (await sb.from(t).select("*", { count: "exact", head: true })).count ?? -1;
+    const { data: diag, error: errDiag } = await sb.rpc("diagnostica");
+    const { data: vapid } = await sb.from("config_server").select("chiave").eq("chiave", "vapid").maybeSingle();
+    const { data: giro } = await sb.from("config_server").select("valore").eq("chiave", "ultimo_giro").maybeSingle();
+    let ultimo: Record<string, unknown> | null = null;
+    try {
+      const u = giro ? JSON.parse(giro.valore) : null;
+      ultimo = u ? { quando: u.quando, notifiche: u.notifiche, errori: (u.errori ?? []).length, niente: u.niente } : null;
+    } catch {
+      /* niente */
+    }
+    let datiOk = "ok";
+    try {
+      await caricaDati(sb);
+    } catch (e) {
+      datiOk = (e as Error).message;
+    }
+    return json({
+      ora_italiana: oraItaliana(),
+      diagnostica: errDiag ? "errore: " + errDiag.message : diag,
+      chiavi_notifiche: Boolean(vapid),
+      telefoni_iscritti: await conta("notifiche_iscrizioni"),
+      membri: await conta("membri"),
+      impegni: await conta("impegni"),
+      farmaci: await conta("farmaci"),
+      documenti: await conta("documenti"),
+      lettura_dati: datiOk,
+      claude: await controllaClaude(),
+      ultimo_giro: ultimo,
+    });
   }
 
   // Il giro automatico parte solo alle 7 italiane e una volta al giorno.

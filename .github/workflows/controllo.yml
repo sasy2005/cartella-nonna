@@ -1,0 +1,67 @@
+name: Controllo completo
+
+# Verifica che tutto funzioni e che i dati siano protetti, guardando l'app "da fuori".
+# Actions → Controllo completo → Run workflow. Nei registri compaiono solo esiti e numeri, mai dati.
+on:
+  workflow_dispatch:
+
+jobs:
+  controllo:
+    runs-on: ubuntu-latest
+    env:
+      URL: ${{ vars.SUPABASE_URL }}
+      ANON: ${{ vars.SUPABASE_ANON_KEY }}
+      SITO: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+    steps:
+      - name: Controlli
+        run: |
+          problemi=0
+          ok()  { echo "✅ $1"; echo "| ✅ | $1 |" >> "$GITHUB_STEP_SUMMARY"; }
+          ko()  { echo "❌ $1"; echo "| ❌ | $1 |" >> "$GITHUB_STEP_SUMMARY"; problemi=$((problemi+1)); }
+          echo "| | Controllo |" >> "$GITHUB_STEP_SUMMARY"; echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          # 1. Il sito risponde
+          for f in "" manifest.webmanifest sw.js icon-192.png; do
+            c=$(curl -s -o /dev/null -w "%{http_code}" "$SITO$f")
+            [ "$c" = "200" ] && ok "Sito: ${f:-pagina principale} raggiungibile" || ko "Sito: ${f:-pagina principale} risponde $c"
+          done
+
+          # 2. Senza login non si vede nessun dato
+          for t in profilo impegni chiamate contatti documenti farmaci pratiche membri notifiche_iscrizioni config_server; do
+            corpo=$(curl -s -w "\n%{http_code}" "$URL/rest/v1/$t?select=*&limit=1" -H "apikey: $ANON" -H "Authorization: Bearer $ANON")
+            c=$(echo "$corpo" | tail -1); b=$(echo "$corpo" | head -n -1)
+            if [ "$b" = "[]" ] || [ "$c" -ge 400 ]; then ok "Tabella $t: chiusa a chi non ha fatto login ($c)"; else ko "Tabella $t: visibile senza login!"; fi
+          done
+
+          # 3. Foto e PDF non visibili senza login
+          b=$(curl -s -X POST "$URL/storage/v1/object/list/documenti" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" -d '{"prefix":"","limit":5}')
+          if [ "$b" = "[]" ] || echo "$b" | grep -qi "error\|denied\|not found\|unauthorized"; then ok "Foto e PDF: chiusi a chi non ha fatto login"; else ko "Foto e PDF: elenco visibile senza login!"; fi
+
+          # 4. Nessuno può registrarsi da solo
+          d=$(curl -s "$URL/auth/v1/settings" -H "apikey: $ANON" | jq -r '.disable_signup')
+          [ "$d" = "true" ] && ok "Registrazioni nuove: chiuse" || ko "Registrazioni nuove: APERTE (Authentication → Sign In / Providers)"
+
+          # 5. Le funzioni server non rispondono a estranei
+          for f in leggi-ricetta promemoria backup; do
+            c=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/functions/v1/$f" -H "Content-Type: application/json" -d '{}')
+            [ "$c" = "401" ] && ok "Funzione $f: protetta (401)" || ko "Funzione $f: risponde $c senza autorizzazione"
+            c=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/functions/v1/$f" -H "Content-Type: application/json" -H "x-cron-secret: sbagliato" -d '{}')
+            [ "$c" = "401" ] && ok "Funzione $f: rifiuta una chiave sbagliata" || ko "Funzione $f: risponde $c con chiave sbagliata"
+          done
+
+          # 6. Stato interno: orologio, notifiche, Claude
+          v=$(curl -s -X POST "$URL/functions/v1/promemoria" -H "Content-Type: application/json" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" -d '{"verifica":true}')
+          echo "$v" | jq '{ora_italiana, orologio: .diagnostica.orologio, esecuzioni: .diagnostica.esecuzioni, risposte: .diagnostica.risposte, chiavi_notifiche, telefoni_iscritti, membri, impegni, farmaci, documenti, lettura_dati, claude, ultimo_giro}'
+          [ "$(echo "$v" | jq -r '.diagnostica.orologio[0].attivo')" = "true" ] && ok "Orologio dei promemoria: attivo ($(echo "$v" | jq -r '.diagnostica.orologio[0].orario'))" || ko "Orologio dei promemoria: non attivo"
+          n=$(echo "$v" | jq '[.diagnostica.esecuzioni[]? | select(.stato=="succeeded")] | length')
+          [ "${n:-0}" -ge 1 ] && ok "Orologio: $n esecuzioni riuscite di recente" || ko "Orologio: nessuna esecuzione riuscita"
+          e=$(echo "$v" | jq '[.diagnostica.risposte[]? | select(.codice != 200 or .errore)] | length')
+          [ "${e:-1}" = "0" ] && ok "Orologio: la funzione risponde sempre bene" || ko "Orologio: $e chiamate alla funzione con errore"
+          [ "$(echo "$v" | jq -r '.lettura_dati')" = "ok" ] && ok "Lettura dei dati: ok" || ko "Lettura dei dati: $(echo "$v" | jq -r '.lettura_dati')"
+          [ "$(echo "$v" | jq -r '.claude')" = "ok" ] && ok "Chiave di Claude (lettura ricette): funziona" || ko "Chiave di Claude: $(echo "$v" | jq -r '.claude')"
+          [ "$(echo "$v" | jq -r '.chiavi_notifiche')" = "true" ] && ok "Notifiche: chiavi pronte" || ko "Notifiche: chiavi non ancora create"
+          t=$(echo "$v" | jq -r '.telefoni_iscritti'); [ "${t:-0}" -ge 1 ] && ok "Notifiche: $t telefoni iscritti" || ko "Notifiche: nessun telefono iscritto"
+          m=$(echo "$v" | jq -r '.membri'); [ "${m:-0}" -ge 1 ] && ok "Membri della famiglia: $m" || ko "Nessun membro della famiglia"
+
+          echo; echo "Problemi trovati: $problemi"
+          [ "$problemi" = "0" ]
