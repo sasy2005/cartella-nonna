@@ -130,7 +130,7 @@ export function FormFarmaco({ id }: { id?: string }) {
   const [conferma, setConferma] = useState(false);
   const g = oggi();
   const esistente = dati.farmaci.find((x) => x.id === id);
-  const f: Farmaco = esistente ?? { id: uuid(), nome: "", quando: "", momenti: {}, per_giorno: 0, scorta: 0, scorta_al: g, note: "", attivo: true };
+  const f: Farmaco = esistente ?? { id: uuid(), nome: "", quando: "", momenti: {}, per_giorno: 0, per_scatola: 0, scorta: 0, scorta_al: g, note: "", attivo: true };
   const campi: Campo[] = [
     { k: "nome", l: "Farmaco e dose", hint: "Es: Metformina 500 mg" },
     ...MOMENTI.map((m) => ({ k: "m_" + m, l: `Quante a ${NOME_MOMENTO[m].toLowerCase()}`, tipo: "number" as const, rapidi: RAPIDI })),
@@ -141,6 +141,7 @@ export function FormFarmaco({ id }: { id?: string }) {
       tipo: "number",
       hint: "Conta le pillole di tutte le scatole, anche quelle aperte. Per l'insulina: quante dosi restano.",
     },
+    { k: "per_scatola", l: "Pillole in una scatola", tipo: "number", hint: "Serve per “Ho comprato”: basta dire quante scatole", rapidi: [14, 20, 28, 30, 50, 60].map((n) => ({ l: String(n), v: String(n) })) },
     { k: "note", l: "Note" },
     { k: "attivo", l: "Lo prende ancora", tipo: "check" },
   ];
@@ -149,6 +150,7 @@ export function FormFarmaco({ id }: { id?: string }) {
     quando: f.quando,
     ...Object.fromEntries(MOMENTI.map((m) => ["m_" + m, f.momenti?.[m] ? String(f.momenti[m]) : "0"])),
     scorta: esistente ? String(Math.round(scortaAttuale(f, g) * 10) / 10) : "",
+    per_scatola: f.per_scatola ? String(f.per_scatola) : "",
     note: f.note,
     attivo: f.attivo,
   };
@@ -167,6 +169,7 @@ export function FormFarmaco({ id }: { id?: string }) {
             per_giorno: 0,
             scorta: numero(v.scorta),
             scorta_al: g,
+            per_scatola: numero(v.per_scatola),
             note: String(v.note).trim(),
             attivo: Boolean(v.attivo),
           };
@@ -199,26 +202,77 @@ export function FormFarmaco({ id }: { id?: string }) {
   );
 }
 
+/** "Ho comprato": quante scatole (× pillole per scatola), con l'eccezione di una scatola diversa solo per questa volta. */
 export function FormComprato({ id }: { id: string }) {
   const { dati, salva, chiudi, toast } = useApp();
   const f = dati.farmaci.find((x) => x.id === id);
   const g = oggi();
+  const base = Number(f?.per_scatola) || 0;
+  const [scatole, setScatole] = useState(1);
+  const [diversa, setDiversa] = useState(base === 0);
+  const [pilloleDiverse, setPilloleDiverse] = useState("");
+  const [ricorda, setRicorda] = useState(base === 0);
   if (!f) return null;
+  const totale = diversa ? numero(pilloleDiverse) : scatole * base;
+
+  const conferma = async () => {
+    if (!(totale > 0)) return toast("Scrivi quante pillole hai comprato");
+    const nuovo: Farmaco = { ...f, scorta: scortaAttuale(f, g) + totale, scorta_al: g };
+    // se non c'era ancora il numero base, lo ricordiamo per la prossima volta
+    if (diversa && ricorda && base === 0) nuovo.per_scatola = totale;
+    await salva("farmaci", nuovo);
+    const giorni = giorniRimasti(nuovo, g);
+    toast(`Aggiunte ${quantita(totale)} pillole${giorni !== null ? ` · ora bastano ${giorni} giorni` : ""}`);
+    chiudi();
+  };
+
   return (
     <Sheet titolo={"Ho comprato: " + f.nome}>
-      <p className="muted">Adesso in casa: circa {quantita(scortaAttuale(f, g)) || "0"}.</p>
-      <Modulo
-        campi={[{ k: "n", l: "Quante pillole hai aggiunto", tipo: "number", hint: "Quelle nella scatola nuova", rapidi: [14, 20, 28, 30, 56, 60].map((n) => ({ l: String(n), v: String(n) })) }]}
-        iniziali={{ n: "" }}
-        etichetta="Aggiungi"
-        onSalva={async (v) => {
-          const n = numero(v.n);
-          if (!(n > 0)) return toast("Inserisci un numero");
-          await salva("farmaci", { ...f, scorta: scortaAttuale(f, g) + n, scorta_al: g });
-          toast("Scorta aggiornata");
-          chiudi();
-        }}
-      />
+      <p className="muted">Adesso in casa: circa {quantita(scortaAttuale(f, g)) || "0"} pillole.</p>
+      {!diversa ? (
+        <div className="card" style={{ alignItems: "center", textAlign: "center" }}>
+          <span className="eyebrow">Quante scatole?</span>
+          <div className="contatore">
+            <button aria-label="Una scatola in meno" disabled={scatole <= 1} onClick={() => setScatole((n) => Math.max(1, n - 1))}>
+              −
+            </button>
+            <b aria-live="polite">{scatole}</b>
+            <button aria-label="Una scatola in più" onClick={() => setScatole((n) => Math.min(20, n + 1))}>
+              +
+            </button>
+          </div>
+          <span>
+            {scatole} {scatole === 1 ? "scatola" : "scatole"} × {quantita(base)} = <b>{quantita(totale)} pillole</b>
+          </span>
+          <button className="ghost mini" onClick={() => setDiversa(true)}>
+            Questa volta la scatola è diversa
+          </button>
+        </div>
+      ) : (
+        <div className="card">
+          <label htmlFor="f-pillole-diverse">
+            Quante pillole hai comprato in tutto
+            <span className="hint">
+              {base ? `Solo per questa volta: la scatola normale resta da ${quantita(base)}` : "Non so ancora quante ce ne sono in una scatola"}
+            </span>
+            <input id="f-pillole-diverse" type="number" inputMode="decimal" value={pilloleDiverse} onChange={(e) => setPilloleDiverse(e.target.value)} autoFocus />
+          </label>
+          {base === 0 && (
+            <label className="check-label">
+              <input type="checkbox" checked={ricorda} onChange={(e) => setRicorda(e.target.checked)} />
+              <span>È una scatola normale: ricordalo per la prossima volta</span>
+            </label>
+          )}
+          {base > 0 && (
+            <button className="ghost mini" style={{ alignSelf: "flex-start" }} onClick={() => setDiversa(false)}>
+              ← Torna alle scatole da {quantita(base)}
+            </button>
+          )}
+        </div>
+      )}
+      <button className="primary big" disabled={!(totale > 0)} onClick={conferma}>
+        {totale > 0 ? `Aggiungi ${quantita(totale)} pillole` : "Aggiungi"}
+      </button>
     </Sheet>
   );
 }

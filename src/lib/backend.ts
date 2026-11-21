@@ -150,6 +150,7 @@ function cloud(session: Session): Backend {
         farmaci: (ok(farmaci) ?? []).map((f: Record<string, unknown>) => ({
           ...f,
           per_giorno: Number(f.per_giorno),
+          per_scatola: Number(f.per_scatola ?? 0),
           scorta: Number(f.scorta),
         })),
         pratiche: ok(pratiche) ?? [],

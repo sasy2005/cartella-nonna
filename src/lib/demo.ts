@@ -86,10 +86,10 @@ export function datiDemo(): Dati {
         { nome: "eGFR", valore: "47", unita: "mL/min", riferimento: "> 60", fuori: "basso" as const }, { nome: "Emoglobina", valore: "12,1", unita: "g/dL", riferimento: "12,0 - 16,0", fuori: "" as const }, { nome: "Ferritina", valore: "45", unita: "ng/mL", riferimento: "15 - 150", fuori: "" as const } ] },
     ],
     farmaci: [
-      { id: id(), nome: "Metformina 500 mg", quando: "Durante il pasto", momenti: { colazione: 1, cena: 1 }, per_giorno: 2, scorta: 30, scorta_al: aggiungiGiorni(g, -11), note: "Esempio", attivo: true },
+      { id: id(), nome: "Metformina 500 mg", quando: "Durante il pasto", per_scatola: 30, momenti: { colazione: 1, cena: 1 }, per_giorno: 2, scorta: 30, scorta_al: aggiungiGiorni(g, -11), note: "Esempio", attivo: true },
       { id: id(), nome: "Insulina lenta (penna)", quando: "14 unità, dopo aver misurato la glicemia", momenti: { sera: 1 }, per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -5), note: "Contata in giorni", attivo: true },
-      { id: id(), nome: "Ramipril 5 mg", quando: "", momenti: { colazione: 1 }, per_giorno: 1, scorta: 56, scorta_al: aggiungiGiorni(g, -10), note: "Esempio", attivo: true },
-      { id: id(), nome: "Cardioaspirina 100 mg", quando: "", momenti: { pranzo: 1 }, per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -21), note: "Esempio", attivo: true },
+      { id: id(), nome: "Ramipril 5 mg", quando: "", per_scatola: 28, momenti: { colazione: 1 }, per_giorno: 1, scorta: 56, scorta_al: aggiungiGiorni(g, -10), note: "Esempio", attivo: true },
+      { id: id(), nome: "Cardioaspirina 100 mg", quando: "", per_scatola: 30, momenti: { pranzo: 1 }, per_giorno: 1, scorta: 30, scorta_al: aggiungiGiorni(g, -21), note: "Esempio", attivo: true },
     ],
     pratiche: [],
   };

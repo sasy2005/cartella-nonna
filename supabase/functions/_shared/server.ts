@@ -60,7 +60,7 @@ export async function caricaDati(sb: SupabaseClient): Promise<Dati> {
     chiamate,
     contatti,
     documenti,
-    farmaci: farmaci.map((f) => ({ ...f, per_giorno: Number(f.per_giorno), scorta: Number(f.scorta) })),
+    farmaci: farmaci.map((f) => ({ ...f, per_giorno: Number(f.per_giorno), per_scatola: Number(f.per_scatola ?? 0), scorta: Number(f.scorta) })),
     pratiche,
   } as Dati;
 }

@@ -135,6 +135,8 @@ export interface Farmaco {
   momenti: Partial<Record<Momento, number>>;
   /** Compresse (o unità) al giorno. */
   per_giorno: number;
+  /** Quante pillole ci sono in una scatola (0 = non indicato). */
+  per_scatola?: number;
   /** Quante ce n'erano in casa il giorno `scorta_al`. */
   scorta: number;
   scorta_al: string;
